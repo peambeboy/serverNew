@@ -64,33 +64,30 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
 });
 
 //Update By ID
-router.put("/:id", async (req, res) => {
+router.put("/:id", upload.single("image"), async (req, res) => {
   try {
     const postId = req.params.id;
     const updatedData = req.body;
+    const updatedImageData = req.file ? req.file.buffer : null; // นี่คือข้อมูลของไฟล์รูปภาพที่อัปโหลด (หากมีการอัปโหลด)
 
-    // ตรวจสอบว่า updatedData ไม่มีค่าว่างหรือ null
-    for (const key in updatedData) {
-      if (updatedData[key] === null || updatedData[key] === undefined) {
-        return res
-          .status(400)
-          .json({ error: `ค่า ${key} ต้องไม่เป็นค่าว่างหรือ null` });
-      }
+    // ถ้ามีการอัปโหลดภาพ หรือมีข้อมูลของภาพที่ถูกส่งมา
+    if (updatedImageData) {
+      updatedData.image = updatedImageData; // เพิ่มข้อมูลรูปภาพใน updatedData
     }
 
-    // ค้นหาและอัปเดตข้อมูลสินค้าโดยใช้ ID
+    // ค้นหาและอัปเดตข้อมูลโพสต์โดยใช้ ID
     const updatedPost = await Posts.findByIdAndUpdate(postId, updatedData, {
-      new: true, // เพื่อให้คืนค่าข้อมูลหลังจากการอัปเดต
+      new: true,
     });
 
     if (updatedPost) {
-      res.json({ message: "อัปเดตข้อมูลสินค้าสำเร็จ", post: updatedPost });
+      res.json({ message: "อัปเดตข้อมูลสำเร็จ", post: updatedPost });
     } else {
-      res.status(404).json({ error: "ไม่พบสินค้าที่ต้องการอัปเดต" });
+      res.status(404).json({ error: "ไม่พบโพสต์ที่ต้องการอัปเดต" });
     }
   } catch (error) {
-    console.error("Error updating product:", error);
-    res.status(500).json({ error: "เกิดข้อผิดพลาดในการอัปเดตสินค้า" });
+    console.error("Error updating post:", error);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการอัปเดตโพสต์" });
   }
 });
 
