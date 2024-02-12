@@ -8,6 +8,7 @@ const Posts = require('./routes/posts');
 const Email = require('./routes/EmailAdmin');
 const Order = require("./routes/Order");
 const Usersinfo = require("./routes/Usersinfo");
+const cors = require('cors')
 
 mongoose.Promise = global.Promise;
 
@@ -26,6 +27,8 @@ var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 
 var app = express();
+
+app.use(cors());
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
