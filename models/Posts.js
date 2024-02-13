@@ -6,6 +6,7 @@ const postSchema = new mongoose.Schema({
   detail: { type: String, required: true },
   price: { type: String, required: true },
   amount: { type: String, required: true },
+  totalprice: { type: String, require: true },
   image: Buffer, // ใช้ชนิดข้อมูล Buffer เพื่อเก็บข้อมูลรูปภาพ
 });
 

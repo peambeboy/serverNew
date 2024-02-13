@@ -39,23 +39,27 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
     }
 
     // แปลงค่า price และ amount เป็นตัวเลข
-    const price = parseFloat(req.body.price);
-    const amount = parseFloat(req.body.amount);
+    const price = parseInt(req.body.price);
+    const amount = parseInt(req.body.amount);
+
+    // คำนวณ totalprice
+    let totalprice = price * amount;
+
+    // ตรวจสอบว่า totalprice มีค่ามากกว่าหรือเท่ากับ 1000 หรือไม่
+    const formattedTotalprice =
+      totalprice >= 1000 ? totalprice.toLocaleString() : totalprice;
 
     // รับรูปภาพจากคำขอ
     const image = req.file.buffer;
-
-    // ตรวจสอบว่า price หรือ amount มีค่ามากกว่าหรือเท่ากับ 1000 หรือไม่
-    const formattedPrice = price >= 1000 ? price.toLocaleString() : price;
-    const formattedAmount = amount >= 1000 ? amount.toLocaleString() : amount;
 
     // บันทึกรูปภาพลงใน MongoDB
     const newPost = new Posts({
       name: req.body.name,
       category: req.body.category,
       detail: req.body.detail,
-      price: formattedPrice,
-      amount: formattedAmount,
+      price: price.toLocaleString(),
+      amount: amount.toLocaleString(),
+      totalprice: formattedTotalprice,
       image: image, // เก็บข้อมูลรูปภาพในฐานข้อมูล
     });
 
@@ -70,7 +74,6 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
   }
 });
-
 
 //Update By ID
 router.put("/:id", upload.single("image"), async (req, res) => {
