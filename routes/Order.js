@@ -69,6 +69,8 @@ router.post(
           .json({ message: "กรุณาอัพโหลดไฟล์รูปภาพและหลักฐานการชำระเงิน" });
       }
 
+      const totalPrice = parseInt(price) * parseInt(amount);
+
       const image = req.files["image"][0].buffer;
       const slip = req.files["slip"][0].buffer;
 
@@ -78,6 +80,7 @@ router.post(
         detail,
         price,
         amount,
+        totalprice: totalPrice, // ใช้ totalPrice แทน
         image,
         email,
         name,

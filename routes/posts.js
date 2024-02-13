@@ -38,16 +38,24 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
       return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
     }
 
+    // แปลงค่า price และ amount เป็นตัวเลข
+    const price = parseFloat(req.body.price);
+    const amount = parseFloat(req.body.amount);
+
     // รับรูปภาพจากคำขอ
     const image = req.file.buffer;
+
+    // ตรวจสอบว่า price หรือ amount มีค่ามากกว่าหรือเท่ากับ 1000 หรือไม่
+    const formattedPrice = price >= 1000 ? price.toLocaleString() : price;
+    const formattedAmount = amount >= 1000 ? amount.toLocaleString() : amount;
 
     // บันทึกรูปภาพลงใน MongoDB
     const newPost = new Posts({
       name: req.body.name,
       category: req.body.category,
       detail: req.body.detail,
-      price: req.body.price,
-      amount: req.body.amount,
+      price: formattedPrice,
+      amount: formattedAmount,
       image: image, // เก็บข้อมูลรูปภาพในฐานข้อมูล
     });
 
@@ -62,6 +70,7 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
   }
 });
+
 
 //Update By ID
 router.put("/:id", upload.single("image"), async (req, res) => {
