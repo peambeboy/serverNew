@@ -69,7 +69,16 @@ router.post(
           .json({ message: "กรุณาอัพโหลดไฟล์รูปภาพและหลักฐานการชำระเงิน" });
       }
 
-      const totalPrice = parseInt(price) * parseInt(amount);
+      let totalPrice = parseInt(price) * parseInt(amount);
+      let formattedPrice = price;
+      let formattedAmount = amount;
+      let formattedTotalPrice = totalPrice;
+
+      if (totalPrice > 1000) {
+        formattedPrice = parseInt(price).toLocaleString();
+        formattedAmount = parseInt(amount).toLocaleString();
+        formattedTotalPrice = totalPrice.toLocaleString();
+      }
 
       const image = req.files["image"][0].buffer;
       const slip = req.files["slip"][0].buffer;
@@ -78,9 +87,9 @@ router.post(
         productname,
         category,
         detail,
-        price,
-        amount,
-        totalprice: totalPrice, // ใช้ totalPrice แทน
+        price: formattedPrice,
+        amount: formattedAmount,
+        totalprice: formattedTotalPrice,
         image,
         email,
         name,
