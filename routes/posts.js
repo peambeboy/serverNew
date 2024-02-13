@@ -38,17 +38,6 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
       return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
     }
 
-    // แปลงค่า price และ amount เป็นตัวเลข
-    const price = parseInt(req.body.price);
-    const amount = parseInt(req.body.amount);
-
-    // คำนวณ totalprice
-    let totalprice = price * amount;
-
-    // ตรวจสอบว่า totalprice มีค่ามากกว่าหรือเท่ากับ 1000 หรือไม่
-    const formattedTotalprice =
-      totalprice >= 1000 ? totalprice.toLocaleString() : totalprice;
-
     // รับรูปภาพจากคำขอ
     const image = req.file.buffer;
 
@@ -57,9 +46,8 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
       name: req.body.name,
       category: req.body.category,
       detail: req.body.detail,
-      price: price.toLocaleString(),
-      amount: amount.toLocaleString(),
-      totalprice: formattedTotalprice,
+      price: req.body.price.toLocaleString(),
+      amount: req.body.amount.toLocaleString(),
       image: image, // เก็บข้อมูลรูปภาพในฐานข้อมูล
     });
 
