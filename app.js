@@ -4,11 +4,11 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 const mongoose = require("mongoose");
-const Posts = require('./routes/posts');
-const Email = require('./routes/EmailAdmin');
+const Posts = require("./routes/posts");
+const Email = require("./routes/EmailAdmin");
 const Order = require("./routes/Order");
 const Usersinfo = require("./routes/Usersinfo");
-const cors = require('cors')
+const cors = require("cors");
 
 mongoose.Promise = global.Promise;
 
@@ -27,7 +27,6 @@ var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 
 var app = express();
-
 app.use(cors());
 
 // view engine setup
@@ -44,8 +43,8 @@ app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/posts", Posts);
 app.use("/email", Email);
-app.use("/order",Order);
-app.use("/usersinfo",Usersinfo);
+app.use("/order", Order);
+app.use("/usersinfo", Usersinfo);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -63,7 +62,7 @@ app.use(function (err, req, res, next) {
   res.render("error");
 });
 
-app.listen( () => {
+app.listen(() => {
   console.log(`Server is running on port 3001`);
 });
 
