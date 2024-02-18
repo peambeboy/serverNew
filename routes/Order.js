@@ -69,13 +69,16 @@ router.post(
           .json({ message: "กรุณาอัพโหลดไฟล์รูปภาพและหลักฐานการชำระเงิน" });
       }
 
-      let totalPrice = parseInt(price) * parseInt(amount);
-      let formattedPrice = price;
+      let cleanedPrice = price.replace(",", "");
+      let parsedPrice = parseInt(cleanedPrice);
+      let totalPrice = parsedPrice * parseInt(amount);
+      let formattedPrice = parsedPrice;
+      // console.log("🚀 ~ parsedPrice:", parsedPrice)
       let formattedAmount = amount;
       let formattedTotalPrice = totalPrice;
 
       if (totalPrice > 1000) {
-        formattedPrice = parseInt(price).toLocaleString();
+        formattedPrice = parseInt(parsedPrice).toLocaleString();
         formattedAmount = parseInt(amount).toLocaleString();
         formattedTotalPrice = totalPrice.toLocaleString();
       }
