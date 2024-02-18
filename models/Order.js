@@ -9,7 +9,7 @@ const orderSchema = new mongoose.Schema({
   },
   payment: {
     type: String,
-    enum: ["เก็บเงินปลายทาง", "โอนเงิน"],
+    enum: ["ชำระเงินปลายทาง", "โอนเงิน"],
     required: true,
   },
   productname: { type: String, required: true },

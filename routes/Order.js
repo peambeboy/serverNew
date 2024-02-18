@@ -65,7 +65,7 @@ router.post(
         return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
       }
 
-      if (!req.files["image"] || !req.files["slip"]) {
+      if (!req.files["image"] ) {
         return res
           .status(400)
           .json({ message: "กรุณาอัพโหลดไฟล์รูปภาพและหลักฐานการชำระเงิน" });
