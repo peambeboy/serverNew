@@ -18,6 +18,25 @@ const upload = multer({
   fileFilter: imageFilter,
 });
 
+//Delete post by ID
+router.delete("/:id", async (req, res) => {
+  try {
+    const postId = req.params.id;
+
+    // ใช้ findByIdAndDelete ด้วย ID โดยตรง
+    const deletedPost = await Order.findByIdAndDelete(postId);
+
+    if (deletedPost) {
+      res.json({ message: "ลบคำสั่งซื้อสำเร็๗" });
+    } else {
+      res.status(404).json({ error: "ไม่พบรายการคำสั่งซื้อ" });
+    }
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการลบคำสั่งซื้อ" });
+  }
+});
+
 router.post("/", async (req, res) => {
   try {
     const order = req.body;
