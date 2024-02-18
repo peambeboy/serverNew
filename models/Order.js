@@ -7,6 +7,11 @@ const orderSchema = new mongoose.Schema({
     default: "ยังไม่ดำเนินการ", // ตัวอย่างของค่าเริ่มต้น
     required: true, // กำหนดให้ฟิลด์นี้เป็นจำเป็น
   },
+  payment: {
+    type: String,
+    enum: ["เก็บเงินปลายทาง", "โอนเงิน"],
+    required: true,
+  },
   productname: { type: String, required: true },
   category: { type: String, required: true },
   price: { type: String, required: true },

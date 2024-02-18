@@ -47,6 +47,7 @@ router.post(
         name,
         tel,
         address,
+        payment,
       } = req.body;
 
       if (
@@ -58,7 +59,8 @@ router.post(
         !email ||
         !name ||
         !tel ||
-        !address
+        !address ||
+        !payment
       ) {
         return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
       }
@@ -99,6 +101,7 @@ router.post(
         tel,
         address,
         slip,
+        payment,
       });
 
       const savedPost = await newPost.save();
