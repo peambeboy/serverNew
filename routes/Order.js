@@ -84,10 +84,10 @@ router.post(
         return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
       }
 
-      if (!req.files["image"] ) {
+      if (!req.files["image"]) {
         return res
           .status(400)
-          .json({ message: "กรุณาอัพโหลดไฟล์รูปภาพและหลักฐานการชำระเงิน" });
+          .json({ message: "กรุณาอัพโหลดไฟล์รูปภาพ" });
       }
 
       let cleanedPrice = price.replace(",", "");
@@ -104,8 +104,14 @@ router.post(
         formattedTotalPrice = totalPrice.toLocaleString();
       }
 
-      const image = req.files["image"][0].buffer;
-      const slip = req.files["slip"][0].buffer;
+      let image;
+      let slip;
+
+      if (payment === "ชำระเงินปลายทาง") {
+        image = req.files["image"][0].buffer;
+      } else {
+        slip = req.files["slip"][0].buffer;
+      }
 
       const newPost = new Order({
         productname,
