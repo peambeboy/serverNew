@@ -19,64 +19,57 @@ const upload = multer({
 });
 
 router.get("/", async (req, res) => {
-  const listOfPosts = await Cart.find();
-  res.json(listOfPosts);
+  const userEmail = req.query.email; // สมมติว่า email ถูกส่งผ่าน query string
+  try {
+    const cartItems = await Cart.find({ email: userEmail });
+    res.json(cartItems);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-router.post(
-  "/upload-image",
-  // upload.fields([{ name: "image", maxCount: 1 }]),
-  async (req, res) => {
-    try {
-      const { productid, email, productname, category, detail, price, amount } =
-        req.body;
 
-      if (
-        !productid ||
-        !email ||
-        !productname ||
-        !category ||
-        !detail ||
-        !price ||
-        !amount
-      ) {
-        return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
-      }
+router.post("/upload-image", async (req, res) => {
+  try {
+    const { productid, email, productname, category, detail, price, amount } =
+      req.body;
 
-      // if (!req.files["image"]) {
-      //   return res.status(400).json({ message: "กรุณาอัพโหลดไฟล์รูปภาพ" });
-      // }
-
-      let formattedPrice = parseInt(price).toLocaleString();
-      let formattedAmount = parseInt(amount).toLocaleString();
-
-      // let image;
-
-      // image = req.files["image"][0].buffer;
-
-      const newPost = new Cart({
-        productid,
-        email,
-        productname,
-        category,
-        detail,
-        price: formattedPrice,
-        amount: formattedAmount,
-        // image: image,
-      });
-
-      const savedPost = await newPost.save();
-
-      res.json({
-        message: "บันทึกข้อมูลสำเร็จ",
-        newPost: savedPost,
-      });
-    } catch (error) {
-      console.error("เกิดข้อผิดพลาด:", error);
-      res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
+    if (
+      !productid ||
+      !email ||
+      !productname ||
+      !category ||
+      !detail ||
+      !price ||
+      !amount
+    ) {
+      return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
     }
+
+    let formattedPrice = parseInt(price).toLocaleString();
+    let formattedAmount = parseInt(amount).toLocaleString();
+
+    const newPost = new Cart({
+      productid,
+      email,
+      productname,
+      category,
+      detail,
+      price: formattedPrice,
+      amount: formattedAmount,
+    });
+
+    const savedPost = await newPost.save();
+
+    res.json({
+      message: "บันทึกข้อมูลสำเร็จ",
+      newPost: savedPost,
+    });
+  } catch (error) {
+    console.error("เกิดข้อผิดพลาด:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
   }
-);
+});
 
 router.delete("/:id", async (req, res) => {
   try {
