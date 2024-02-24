@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer"); // ใช้ Multer สำหรับการอัปโหลดไฟล์
 const Posts = require("../models/Posts");
+const axios = require("axios");
 
 const storage = multer.memoryStorage();
 const imageFilter = (req, file, cb) => {
@@ -76,6 +77,10 @@ router.put("/:id", upload.single("image"), async (req, res) => {
     // ถ้ามีการอัปโหลดภาพ หรือมีข้อมูลของภาพที่ถูกส่งมา
     if (updatedImageData) {
       updatedData.image = updatedImageData; // เพิ่มข้อมูลรูปภาพใน updatedData
+    }
+
+    if (req.body.amount <= 0) {
+      req.body.amount = "สินค้าหมด"
     }
 
     // ค้นหาและอัปเดตข้อมูลโพสต์โดยใช้ ID
