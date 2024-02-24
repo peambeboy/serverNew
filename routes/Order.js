@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const Order = require("../models/Order");
+const axios = require("axios");
 
 const storage = multer.memoryStorage();
 const imageFilter = (req, file, cb) => {
@@ -94,6 +95,7 @@ router.post(
   async (req, res) => {
     try {
       const {
+        productid,
         productname,
         category,
         detail,
@@ -107,6 +109,7 @@ router.post(
       } = req.body;
 
       if (
+        !productid ||
         !productname ||
         !category ||
         !detail ||
@@ -148,6 +151,28 @@ router.post(
         image = req.files["image"][0].buffer;
         slip = req.files["slip"][0].buffer;
       }
+      axios
+        .get(`http://localhost:3001/posts/${productid}`)
+        .then((response) => {
+          const res = response.data;
+          console.log(res);
+
+          const body = {
+            amount: res.amount - amount,
+          };
+
+          axios
+            .put(`http://localhost:3001/posts/${productid}`, body)
+            .then((response) => {
+              console.log(response.data);
+            })
+            .catch((error) => {
+              console.error("Error updating data:", error);
+            });
+        })
+        .catch((error) => {
+          console.error("Error fetching data:", error);
+        });
 
       // const dateTimeString = new Date();
       // const momentObj = moment(dateTimeString);
@@ -157,6 +182,7 @@ router.post(
       // console.log("🚀 ~ bangkokTimeformat:", bangkokTimeformat);
 
       const newPost = new Order({
+        productid,
         productname,
         category,
         detail,
