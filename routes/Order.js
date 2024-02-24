@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const Order = require("../models/Order");
+const moment = require("moment-timezone");
 
 const storage = multer.memoryStorage();
 const imageFilter = (req, file, cb) => {
@@ -37,14 +38,51 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+// router.post("/", async (req, res) => {
+//   try {
+//     const order = req.body;
+//     const newOrder = await Order.create(order);
+//     res.json(newOrder);
+//   } catch (error) {
+//     console.error("เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ:", error);
+//     res.status(500).json({ error: "เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ" });
+//   }
+// });
+
+router.put("/update/:id", async (req, res) => {
   try {
-    const order = req.body;
-    const newOrder = await Order.create(order);
-    res.json(newOrder);
+    const { id } = req.params;
+
+    const { status } = req.body;
+
+    // ตรวจสอบว่าข้อมูล successtime และ canceltime ถูกส่งมาหรือไม่
+    if (!status) {
+      return res.status(400).json({ message: "กรุณาระบุ status" });
+    }
+
+    let updateFields;
+
+    if (status === "สำเร็จ") {
+      updateFields = {
+        successtime: new Date(),
+        canceltime: null,
+      };
+    } else if (status === "ปฏิเสธ") {
+      updateFields = {
+        canceltime: new Date(),
+        successtime: null,
+      };
+    }
+
+    // อัปเดตข้อมูลใน MongoDB
+    const updatedOrder = await Order.findByIdAndUpdate(id, updateFields, {
+      new: true,
+    });
+
+    res.json({ message: "อัปเดตข้อมูลเรียบร้อย", updatedOrder });
   } catch (error) {
-    console.error("เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ:", error);
-    res.status(500).json({ error: "เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ" });
+    console.error("เกิดข้อผิดพลาด:", error);
+    res.status(500).json({ message: "ไม่สามารถอัปเดตข้อมูลได้" });
   }
 });
 
@@ -85,9 +123,7 @@ router.post(
       }
 
       if (!req.files["image"]) {
-        return res
-          .status(400)
-          .json({ message: "กรุณาอัพโหลดไฟล์รูปภาพ" });
+        return res.status(400).json({ message: "กรุณาอัพโหลดไฟล์รูปภาพ" });
       }
 
       let cleanedPrice = price.replace(",", "");
@@ -113,6 +149,13 @@ router.post(
         slip = req.files["slip"][0].buffer;
       }
 
+      // const dateTimeString = new Date();
+      // const momentObj = moment(dateTimeString);
+      // const bangkokTime = momentObj.tz("Asia/Bangkok");
+      // console.log("🚀 ~ bangkokTime:", bangkokTime)
+      // const bangkokTimeformat = bangkokTime.format("YYYY-MM-DD HH:mm:ss");
+      // console.log("🚀 ~ bangkokTimeformat:", bangkokTimeformat);
+
       const newPost = new Order({
         productname,
         category,
@@ -127,6 +170,7 @@ router.post(
         address,
         slip,
         payment,
+        ordertime: new Date(),
       });
 
       const savedPost = await newPost.save();

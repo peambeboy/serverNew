@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 const orderSchema = new mongoose.Schema({
   status: {
     type: String,
-    enum: ["ยังไม่ดำเนินการ", "กำลังดำเนินการ", "ปฏิเสธ", "สำเร็จ"],
-    default: "ยังไม่ดำเนินการ", // ตัวอย่างของค่าเริ่มต้น
+    enum: [ "กำลังดำเนินการ", "ปฏิเสธ", "สำเร็จ"],
+    default: "กำลังดำเนินการ", // ตัวอย่างของค่าเริ่มต้น
     required: true, // กำหนดให้ฟิลด์นี้เป็นจำเป็น
   },
   payment: {
@@ -23,6 +23,9 @@ const orderSchema = new mongoose.Schema({
   tel: { type: String, required: true },
   address: { type: String, required: true },
   slip: Buffer,
+  ordertime: { type: Date, default: Date.now },
+  successtime: { type: Date },
+  canceltime: { type: Date },
 });
 
 const Order = mongoose.model("Order", orderSchema);
