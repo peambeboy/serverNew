@@ -144,7 +144,8 @@ router.post(
 
       if (payment === "ชำระเงินปลายทาง") {
         image = req.files["image"][0].buffer;
-      } else {
+      } else if (payment === "โอนเงิน") {
+        image = req.files["image"][0].buffer;
         slip = req.files["slip"][0].buffer;
       }
 
@@ -162,12 +163,12 @@ router.post(
         price: formattedPrice,
         amount: formattedAmount,
         totalprice: formattedTotalPrice,
-        image,
+        image: image,
         email,
         name,
         tel,
         address,
-        slip,
+        slip: slip,
         payment,
         ordertime: new Date(),
       });
