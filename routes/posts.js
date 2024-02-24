@@ -41,13 +41,16 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
     // รับรูปภาพจากคำขอ
     const image = req.file.buffer;
 
+    const Price = parseInt(req.body.price).toLocaleString();
+    const Amount = parseInt(req.body.amount).toLocaleString();
+
     // บันทึกรูปภาพลงใน MongoDB
     const newPost = new Posts({
       name: req.body.name,
       category: req.body.category,
       detail: req.body.detail,
-      price: req.body.price.toLocaleString(),
-      amount: req.body.amount.toLocaleString(),
+      price: Price,
+      amount: Amount,
       image: image, // เก็บข้อมูลรูปภาพในฐานข้อมูล
     });
 

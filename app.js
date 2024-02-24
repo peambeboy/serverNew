@@ -8,6 +8,7 @@ const Posts = require("./routes/posts");
 const Email = require("./routes/EmailAdmin");
 const Order = require("./routes/Order");
 const Usersinfo = require("./routes/Usersinfo");
+const Cart = require("./routes/Cart");
 const cors = require("cors");
 
 mongoose.Promise = global.Promise;
@@ -45,6 +46,7 @@ app.use("/posts", Posts);
 app.use("/email", Email);
 app.use("/order", Order);
 app.use("/usersinfo", Usersinfo);
+app.use("/cart", Cart);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
