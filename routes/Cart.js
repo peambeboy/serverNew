@@ -25,7 +25,7 @@ router.get("/", async (req, res) => {
 
 router.post(
   "/upload-image",
-  upload.fields([{ name: "image", maxCount: 1 }]),
+  // upload.fields([{ name: "image", maxCount: 1 }]),
   async (req, res) => {
     try {
       const { productid, email, productname, category, detail, price, amount } =
@@ -43,16 +43,16 @@ router.post(
         return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
       }
 
-      if (!req.files["image"]) {
-        return res.status(400).json({ message: "กรุณาอัพโหลดไฟล์รูปภาพ" });
-      }
+      // if (!req.files["image"]) {
+      //   return res.status(400).json({ message: "กรุณาอัพโหลดไฟล์รูปภาพ" });
+      // }
 
       let formattedPrice = parseInt(price).toLocaleString();
       let formattedAmount = parseInt(amount).toLocaleString();
 
-      let image;
+      // let image;
 
-      image = req.files["image"][0].buffer;
+      // image = req.files["image"][0].buffer;
 
       const newPost = new Cart({
         productid,
@@ -62,7 +62,7 @@ router.post(
         detail,
         price: formattedPrice,
         amount: formattedAmount,
-        image: image,
+        // image: image,
       });
 
       const savedPost = await newPost.save();
