@@ -28,11 +28,12 @@ router.post(
   upload.fields([{ name: "image", maxCount: 1 }]),
   async (req, res) => {
     try {
-      const { productid, productname, category, detail, price, amount } =
+      const { productid, email, productname, category, detail, price, amount } =
         req.body;
 
       if (
         !productid ||
+        !email ||
         !productname ||
         !category ||
         !detail ||
@@ -55,6 +56,7 @@ router.post(
 
       const newPost = new Cart({
         productid,
+        email,
         productname,
         category,
         detail,
@@ -94,6 +96,6 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-router.delete
+router.delete;
 
 module.exports = router;
