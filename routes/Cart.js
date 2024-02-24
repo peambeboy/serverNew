@@ -51,6 +51,8 @@ router.post(
 
       let image;
 
+      image = req.files["image"][0].buffer;
+
       const newPost = new Cart({
         productid,
         productname,
@@ -58,7 +60,7 @@ router.post(
         detail,
         price: formattedPrice,
         amount: formattedAmount,
-        image,
+        image: image,
       });
 
       const savedPost = await newPost.save();
