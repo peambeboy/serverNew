@@ -31,6 +31,7 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
     if (
       !req.body.name ||
       !req.body.category ||
+      !req.body.size ||
       !req.body.detail ||
       !req.body.price ||
       !req.body.amount ||
@@ -49,6 +50,7 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
     const newPost = new Posts({
       name: req.body.name,
       category: req.body.category,
+      size: req.body.size,
       detail: req.body.detail,
       price: Price,
       amount: Amount,
@@ -80,7 +82,7 @@ router.put("/:id", upload.single("image"), async (req, res) => {
     }
 
     if (req.body.amount <= 0) {
-      req.body.amount = "สินค้าหมด"
+      req.body.amount = "สินค้าหมด";
     }
 
     // ค้นหาและอัปเดตข้อมูลโพสต์โดยใช้ ID
