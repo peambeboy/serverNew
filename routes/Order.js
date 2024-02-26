@@ -64,11 +64,13 @@ router.put("/update/:id", async (req, res) => {
 
     if (status === "สำเร็จ") {
       updateFields = {
+        status: req.body.status,
         successtime: new Date(),
         canceltime: null,
       };
     } else if (status === "ปฏิเสธ") {
       updateFields = {
+        status: req.body.status,
         canceltime: new Date(),
         successtime: null,
       };
@@ -276,6 +278,133 @@ router.post("/get-user-orders", async (req, res) => {
 router.get("/", async (req, res) => {
   const listOfPosts = await Order.find();
   res.json(listOfPosts);
+});
+
+//Get for Dashboard
+router.get("/dashboard", async (req, res) => {
+  try {
+    const listOfOrdersSuccess = await Order.find({ status: "สำเร็จ" });
+    const listOfOrdersWait = await Order.find({ status: "กำลังดำเนินการ" });
+    const listOfOrdersCancel = await Order.find({ status: "ปฏิเสธ" });
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+
+    let totalAmountWait = 0;
+    let totalPriceWait = 0;
+    let totalAmountMontlyWait = 0;
+    let totalPriceMontlyWait = 0;
+
+    let totalAmountSuccess = 0;
+    let totalPriceSuccess = 0;
+    let totalAmountSuccessMontly = 0;
+    let totalPriceSuccessMontly = 0;
+
+    let totalAmountCancel = 0;
+    let totalPriceCancel = 0;
+    let totalAmountMontlyCancel = 0;
+    let totalPriceMontlyCancel = 0;
+
+    listOfOrdersCancel.forEach((order) => {
+      const orderDate = new Date(order.ordertime);
+      if (
+        orderDate.getMonth() + 1 === currentMonth &&
+        orderDate.getFullYear() === currentYear
+      ) {
+        const price = parseInt(order.totalprice.replace(/,/g, ""));
+        const amount = parseInt(order.amount.replace(/,/g, ""));
+        totalAmountMontlyCancel += amount;
+        totalPriceMontlyCancel += price;
+      }
+      const price = parseInt(order.totalprice.replace(/,/g, ""));
+      const amount = parseInt(order.amount.replace(/,/g, ""));
+      totalAmountCancel += amount;
+      totalPriceCancel += price;
+    });
+
+    listOfOrdersWait.forEach((order) => {
+      const orderDate = new Date(order.ordertime);
+      if (
+        orderDate.getMonth() + 1 === currentMonth &&
+        orderDate.getFullYear() === currentYear
+      ) {
+        const price = parseInt(order.totalprice.replace(/,/g, ""));
+        const amount = parseInt(order.amount.replace(/,/g, ""));
+        totalAmountMontlyWait += amount;
+        totalPriceMontlyWait += price;
+      }
+      const price = parseInt(order.totalprice.replace(/,/g, ""));
+      const amount = parseInt(order.amount.replace(/,/g, ""));
+      totalAmountWait += amount;
+      totalPriceWait += price;
+    });
+
+    listOfOrdersSuccess.forEach((order) => {
+      const orderDate = new Date(order.ordertime);
+      if (
+        orderDate.getMonth() + 1 === currentMonth &&
+        orderDate.getFullYear() === currentYear
+      ) {
+        const price = parseInt(order.totalprice.replace(/,/g, ""));
+        const amount = parseInt(order.amount.replace(/,/g, ""));
+        totalAmountSuccessMontly += amount;
+        totalPriceSuccessMontly += price;
+      }
+      const price = parseInt(order.totalprice.replace(/,/g, ""));
+      const amount = parseInt(order.amount.replace(/,/g, ""));
+      totalAmountSuccess += amount;
+      totalPriceSuccess += price;
+    });
+
+    // all Success only
+    const totalpriceSuccess = totalPriceSuccess.toLocaleString();
+    const totalamountSuccess = totalAmountSuccess.toLocaleString();
+    //เดือนปัจจุบัน success only
+    const totalpriceMontlySuccess = totalPriceSuccessMontly.toLocaleString();
+    const totalamountMontlySuccess = totalAmountSuccessMontly.toLocaleString();
+
+    //all in progess
+    const totalpriceWait = totalPriceWait.toLocaleString();
+    const totalamountWait = totalAmountWait.toLocaleString();
+    // เดือนปัจุบัน in progess
+    const totalpriceMontlyWait = totalPriceMontlyWait.toLocaleString();
+    const totalamountMontlyWait = totalAmountMontlyWait.toLocaleString();
+
+    //all cancel
+    const totalpriceCancel = totalPriceCancel.toLocaleString();
+    const totalamountCancel = totalAmountCancel.toLocaleString();
+    //เดือนปัจจุบัน cancel
+    const totalpriceMontlyCancel = totalPriceMontlyCancel.toLocaleString();
+    const totalamountMontlyCancel = totalAmountMontlyCancel.toLocaleString();
+    axios
+      .get(`http://localhost:3001/posts`)
+      .then((response) => {
+        const dataCount = response.data.length;
+        console.log("🚀 ~ .then ~ dataCount:", dataCount);
+        res.json({
+          totalamountMontlyWait,
+          totalpriceMontlyWait,
+          totalamountWait,
+          totalpriceWait,
+          totalamountMontlyCancel,
+          totalpriceMontlyCancel,
+          totalamountCancel,
+          totalpriceCancel,
+          totalamountMontlySuccess,
+          totalpriceMontlySuccess,
+          totalamountSuccess,
+          totalpriceSuccess,
+          dataCount,
+        });
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 });
 
 module.exports = router;
