@@ -1,68 +1,77 @@
 const express = require("express");
 const router = express.Router();
+const bcrypt = require("bcryptjs"); // Import bcryptjs library
 const Email = require("../models/Email");
 
 //Check Admin
 router.post("/", async (req, res) => {
   try {
-    const { email } = req.body;
+    const { user, pass } = req.body;
 
-    // ค้นหาอีเมล์ในฐานข้อมูล
-    const result = await Email.findOne({ email: email });
+    const result = await Email.findOne({ user: user });
 
     if (result) {
-      res.json({ isAdmin: true });
+      // ตรวจสอบรหัสผ่าน
+      const isPasswordValid = await bcrypt.compare(pass, result.pass);
+      if (isPasswordValid) {
+        res.json({ isAdmin: true });
+      } else {
+        res.json({ isAdmin: false });
+      }
     } else {
       res.json({ isAdmin: false });
     }
   } catch (err) {
     console.error("เกิดข้อผิดพลาดในการค้นหาในฐานข้อมูล:", err);
-    res.status(500).json({ message: "เกิดข้อผิดพลาดในการตรวจสอบอีเมล์" });
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการตรวจสอบ" });
   }
 });
 
 //Add Admin
-router.post("/email", async (req, res) => {
+router.post("/user", async (req, res) => {
   try {
-    const post = req.body;
+    const { user, pass } = req.body;
 
     // ตรวจสอบว่าอีเมลซ้ำกันหรือไม่
-    const existingEmail = await Email.findOne({ email: post.email });
+    const existingEmail = await Email.findOne({ user: user });
 
     if (existingEmail) {
-      return res.status(400).json({ message: "อีเมลนี้มีอยู่แล้วในระบบ" });
+      return res.status(400).json({ message: "user นี้มีอยู่แล้วในระบบ" });
     }
 
-    const createdEmail = await Email.create(post);
+    // Hash รหัสผ่านก่อนเก็บลงในฐานข้อมูล
+    const hashedPassword = await bcrypt.hash(pass, 10); // 10 เป็นค่า salt rounds
+
+    const createdEmail = await Email.create({ user, pass: hashedPassword });
     res.json(createdEmail);
   } catch (err) {
-    console.error("เกิดข้อผิดพลาดในการสร้างอีเมล์:", err);
-    res.status(500).json({ message: "เกิดข้อผิดพลาดในการสร้างอีเมล์" });
+    console.error("เกิดข้อผิดพลาดในการสร้าง user:", err);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการสร้าง user" });
   }
 });
 
 //Delete email admin
-router.delete("/delete-email/:id", async (req, res) => {
+router.delete("/delete-user/:id", async (req, res) => {
   try {
-    const emailId = req.params.id;
+    const userId = req.params.id;
 
     // ค้นหาและลบอีเมล์โดยใช้ ID ด้วย Mongoose
-    const deletedEmail = await Email.findOneAndDelete({ _id: emailId });
+    const deletedEmail = await Email.findOneAndDelete({ _id: userId });
 
     if (deletedEmail) {
-      res.json({ message: "ลบอีเมลสำเร็จ" });
+      res.json({ message: "ลบ user สำเร็จ" });
     } else {
-      res.status(404).json({ error: "ไม่พบอีเมลที่ต้องการลบ" });
+      res.status(404).json({ error: "ไม่พบ user ที่ต้องการลบ" });
     }
   } catch (error) {
-    console.error("Error deleting email:", error);
-    res.status(500).json({ error: "เกิดข้อผิดพลาดในการลบอีเมล" });
+    console.error("Error deleting user:", error);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการลบ user" });
   }
 });
 
-router.get("/check-email", async (req, res) => {
-    const listOfPosts = await Email.find();
-    res.json(listOfPosts);
-  });
+router.get("/check-user", async (req, res) => {
+  const listOfPosts = await Email.find();
+  res.json(listOfPosts);
+});
 
 module.exports = router;
