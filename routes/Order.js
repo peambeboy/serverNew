@@ -53,7 +53,7 @@ router.put("/update/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { status } = req.body;
+    const { status, parcel } = req.body;
 
     // ตรวจสอบว่าข้อมูล successtime และ canceltime ถูกส่งมาหรือไม่
     if (!status) {
@@ -67,12 +67,21 @@ router.put("/update/:id", async (req, res) => {
         status: req.body.status,
         successtime: new Date(),
         canceltime: null,
+        parcel: req.body.parcel,
       };
     } else if (status === "ปฏิเสธ") {
       updateFields = {
         status: req.body.status,
         canceltime: new Date(),
         successtime: null,
+        parcel: "คำสั่งซื้อถูกปฏิเสธ",
+      };
+    } else if (status === "กำลังดำเนินการ") {
+      updateFields = {
+        status: req.body.status,
+        canceltime: null,
+        successtime: null,
+        parcel: null,
       };
     }
 
@@ -196,6 +205,7 @@ router.post(
         name,
         tel,
         address,
+        parcel: "อยู่ระหว่างดำเนินการตรวจสอบ",
         slip: slip,
         payment,
         ordertime: new Date(),
