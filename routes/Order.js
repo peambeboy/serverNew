@@ -28,7 +28,7 @@ router.delete("/:id", async (req, res) => {
     const deletedPost = await Order.findByIdAndDelete(postId);
 
     if (deletedPost) {
-      res.json({ message: "ลบคำสั่งซื้อสำเร็๗" });
+      res.json({ message: "ลบคำสั่งซื้อสำเร็จ" });
     } else {
       res.status(404).json({ error: "ไม่พบรายการคำสั่งซื้อ" });
     }
