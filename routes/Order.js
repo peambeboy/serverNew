@@ -290,6 +290,23 @@ router.get("/", async (req, res) => {
   res.json(listOfPosts);
 });
 
+//Get by Email
+router.get("/email", async (req, res) => {
+  const userEmail = req.query.email; // สมมติว่าต้องการใช้ query string สำหรับการส่ง email
+  if (!userEmail) {
+    return res.status(400).json({ error: "Email is required" });
+  }
+
+  try {
+    const listOfPosts = await Order.find({ email: userEmail });
+    res.json(listOfPosts);
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 //Get for Dashboard
 router.get("/dashboard", async (req, res) => {
   try {
