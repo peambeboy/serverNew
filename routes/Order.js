@@ -310,9 +310,6 @@ router.get("/email", async (req, res) => {
 router.get("/dashboard", async (req, res) => {
   try {
     const listOfOrdersSuccess = await Order.find({ status: "สำเร็จ" });
-    const countOfOrdersSuccess = await Order.countDocuments({
-      status: "สำเร็จ",
-    });
     const listOfOrdersWait = await Order.find({ status: "กำลังดำเนินการ" });
     const listOfOrdersCancel = await Order.find({ status: "ปฏิเสธ" });
     const currentDate = new Date();
@@ -334,8 +331,12 @@ router.get("/dashboard", async (req, res) => {
     let totalAmountMontlyCancel = 0;
     let totalPriceMontlyCancel = 0;
 
+    let ProductCountSuccess = 0;
+    let ProductCountCancel = 0;
+    let ProductCountWait = 0;
+
     listOfOrdersCancel.forEach((order) => {
-      const orderDate = new Date(order.ordertime);
+      const orderDate = new Date(order.canceltime);
       if (
         orderDate.getMonth() + 1 === currentMonth &&
         orderDate.getFullYear() === currentYear
@@ -344,6 +345,7 @@ router.get("/dashboard", async (req, res) => {
         const amount = parseInt(order.amount.replace(/,/g, ""));
         totalAmountMontlyCancel += amount;
         totalPriceMontlyCancel += price;
+        ProductCountCancel++;
       }
       const price = parseInt(order.totalprice.replace(/,/g, ""));
       const amount = parseInt(order.amount.replace(/,/g, ""));
@@ -361,6 +363,7 @@ router.get("/dashboard", async (req, res) => {
         const amount = parseInt(order.amount.replace(/,/g, ""));
         totalAmountMontlyWait += amount;
         totalPriceMontlyWait += price;
+        ProductCountWait++;
       }
       const price = parseInt(order.totalprice.replace(/,/g, ""));
       const amount = parseInt(order.amount.replace(/,/g, ""));
@@ -369,7 +372,7 @@ router.get("/dashboard", async (req, res) => {
     });
 
     listOfOrdersSuccess.forEach((order) => {
-      const orderDate = new Date(order.ordertime);
+      const orderDate = new Date(order.successtime);
       if (
         orderDate.getMonth() + 1 === currentMonth &&
         orderDate.getFullYear() === currentYear
@@ -378,6 +381,7 @@ router.get("/dashboard", async (req, res) => {
         const amount = parseInt(order.amount.replace(/,/g, ""));
         totalAmountSuccessMontly += amount;
         totalPriceSuccessMontly += price;
+        ProductCountSuccess++;
       }
       const price = parseInt(order.totalprice.replace(/,/g, ""));
       const amount = parseInt(order.amount.replace(/,/g, ""));
@@ -409,7 +413,6 @@ router.get("/dashboard", async (req, res) => {
       .get(`http://localhost:3001/posts`)
       .then((response) => {
         const ProductCount = response.data.length;
-        console.log("🚀 ~ .then ~ dataCount:", ProductCount);
         res.json({
           totalamountMontlyWait,
           totalpriceMontlyWait,
@@ -424,7 +427,9 @@ router.get("/dashboard", async (req, res) => {
           totalamountSuccess,
           totalpriceSuccess,
           ProductCount,
-          countOfOrdersSuccess,
+          ProductCountSuccess,
+          ProductCountCancel,
+          ProductCountWait,
         });
       })
       .catch((error) => {
