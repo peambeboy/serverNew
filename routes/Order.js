@@ -306,11 +306,13 @@ router.get("/email", async (req, res) => {
   }
 });
 
-
 //Get for Dashboard
 router.get("/dashboard", async (req, res) => {
   try {
     const listOfOrdersSuccess = await Order.find({ status: "สำเร็จ" });
+    const countOfOrdersSuccess = await Order.countDocuments({
+      status: "สำเร็จ",
+    });
     const listOfOrdersWait = await Order.find({ status: "กำลังดำเนินการ" });
     const listOfOrdersCancel = await Order.find({ status: "ปฏิเสธ" });
     const currentDate = new Date();
@@ -406,8 +408,8 @@ router.get("/dashboard", async (req, res) => {
     axios
       .get(`http://localhost:3001/posts`)
       .then((response) => {
-        const dataCount = response.data.length;
-        console.log("🚀 ~ .then ~ dataCount:", dataCount);
+        const ProductCount = response.data.length;
+        console.log("🚀 ~ .then ~ dataCount:", ProductCount);
         res.json({
           totalamountMontlyWait,
           totalpriceMontlyWait,
@@ -421,7 +423,8 @@ router.get("/dashboard", async (req, res) => {
           totalpriceMontlySuccess,
           totalamountSuccess,
           totalpriceSuccess,
-          dataCount,
+          ProductCount,
+          countOfOrdersSuccess,
         });
       })
       .catch((error) => {
