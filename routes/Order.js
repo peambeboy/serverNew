@@ -390,25 +390,25 @@ router.get("/dashboard", async (req, res) => {
     });
 
     // all Success only
-    const totalpriceSuccess = totalPriceSuccess.toLocaleString();
-    const totalamountSuccess = totalAmountSuccess.toLocaleString();
+    const totalpriceSuccess = totalPriceSuccess;
+    const totalamountSuccess = totalAmountSuccess;
     //เดือนปัจจุบัน success only
-    const totalpriceMontlySuccess = totalPriceSuccessMontly.toLocaleString();
-    const totalamountMontlySuccess = totalAmountSuccessMontly.toLocaleString();
+    const totalpriceMontlySuccess = totalPriceSuccessMontly;
+    const totalamountMontlySuccess = totalAmountSuccessMontly;
 
     //all in progess
-    const totalpriceWait = totalPriceWait.toLocaleString();
-    const totalamountWait = totalAmountWait.toLocaleString();
+    const totalpriceWait = totalPriceWait;
+    const totalamountWait = totalAmountWait;
     // เดือนปัจุบัน in progess
-    const totalpriceMontlyWait = totalPriceMontlyWait.toLocaleString();
-    const totalamountMontlyWait = totalAmountMontlyWait.toLocaleString();
+    const totalpriceMontlyWait = totalPriceMontlyWait;
+    const totalamountMontlyWait = totalAmountMontlyWait;
 
     //all cancel
-    const totalpriceCancel = totalPriceCancel.toLocaleString();
-    const totalamountCancel = totalAmountCancel.toLocaleString();
+    const totalpriceCancel = totalPriceCancel;
+    const totalamountCancel = totalAmountCancel;
     //เดือนปัจจุบัน cancel
-    const totalpriceMontlyCancel = totalPriceMontlyCancel.toLocaleString();
-    const totalamountMontlyCancel = totalAmountMontlyCancel.toLocaleString();
+    const totalpriceMontlyCancel = totalPriceMontlyCancel;
+    const totalamountMontlyCancel = totalAmountMontlyCancel;
     axios
       .get(`http://localhost:3001/posts`)
       .then((response) => {
