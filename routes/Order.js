@@ -135,10 +135,6 @@ router.post(
         return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
       }
 
-      if (!req.files["image"]) {
-        return res.status(400).json({ message: "กรุณาอัพโหลดไฟล์รูปภาพ" });
-      }
-
       let cleanedPrice = price.replace(",", "");
       let parsedPrice = parseInt(cleanedPrice);
       let totalPrice = parsedPrice * parseInt(amount);
@@ -156,10 +152,7 @@ router.post(
       let image;
       let slip;
 
-      if (payment === "ชำระเงินปลายทาง") {
-        image = req.files["image"][0].buffer;
-      } else if (payment === "โอนเงิน") {
-        image = req.files["image"][0].buffer;
+      if (payment === "โอนเงิน") {
         slip = req.files["slip"][0].buffer;
       }
       axios
@@ -395,14 +388,12 @@ router.get("/dashboard", async (req, res) => {
     //เดือนปัจจุบัน success only
     const totalpriceMontlySuccess = totalPriceSuccessMontly;
     const totalamountMontlySuccess = totalAmountSuccessMontly;
-
     //all in progess
     const totalpriceWait = totalPriceWait;
     const totalamountWait = totalAmountWait;
     // เดือนปัจุบัน in progess
     const totalpriceMontlyWait = totalPriceMontlyWait;
     const totalamountMontlyWait = totalAmountMontlyWait;
-
     //all cancel
     const totalpriceCancel = totalPriceCancel;
     const totalamountCancel = totalAmountCancel;
