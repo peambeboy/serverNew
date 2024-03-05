@@ -54,18 +54,55 @@ router.post("/user", async (req, res) => {
 router.delete("/delete-user/:id", async (req, res) => {
   try {
     const userId = req.params.id;
-
-    // ค้นหาและลบอีเมล์โดยใช้ ID ด้วย Mongoose
-    const deletedEmail = await Email.findOneAndDelete({ _id: userId });
-
-    if (deletedEmail) {
-      res.json({ message: "ลบ user สำเร็จ" });
-    } else {
-      res.status(404).json({ error: "ไม่พบ user ที่ต้องการลบ" });
+    const { _id } = req.body;
+    const user = await Email.findById(_id);
+    const userDel = await Email.findById(userId);
+    if (!userDel) {
+      return res.status(404).json({ error: "ไม่พบผู้ใช้ที่ต้องการลบ" });
     }
+    if (user.userstatus !== "admin") {
+      return res.status(403).json({ error: "คุณไม่มีสิทธิ์ในการลบผู้ใช้" });
+    }
+    await Email.findByIdAndDelete(userId);
+    res.json({ message: "ลบผู้ใช้สำเร็จ" });
   } catch (error) {
     console.error("Error deleting user:", error);
-    res.status(500).json({ error: "เกิดข้อผิดพลาดในการลบ user" });
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการลบผู้ใช้" });
+  }
+});
+
+//Update Admin
+router.put("/update-user/:id", async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const _id = req.body._id;
+    const updateform = {
+      user: req.body.user,
+      pass: req.body.pass,
+      userstatus: req.body.userstatus,
+      updatetime: new Date(),
+    };
+    const userUpdater = await Email.findById(_id);
+
+    const existingUser = await Email.findOne({ user: updateform.user });
+    if (existingUser && existingUser._id.toString() !== userId) {
+      return res
+        .status(400)
+        .json({ error: "ชื่อผู้ใช้ซ้ำกับผู้ใช้ที่มีอยู่แล้ว" });
+    }
+
+    if (userUpdater.userstatus !== "admin") {
+      return res.status(403).json({ error: "ไม่อนุญาตให้อัพเดตผู้ใช้" });
+    }
+
+    const userUpdate = await Email.findByIdAndUpdate(userId, updateform, {
+      new: true,
+    });
+    
+    res.status(200).json(userUpdate);
+  } catch (error) {
+    console.error("Error: ", error);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการอัพเดตผู้ใช้" });
   }
 });
 
