@@ -193,7 +193,7 @@ router.post(
         price: formattedPrice,
         amount: formattedAmount,
         totalprice: formattedTotalPrice,
-        image: image,
+        // image: image,
         email,
         name,
         tel,
