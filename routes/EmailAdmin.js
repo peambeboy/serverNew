@@ -95,10 +95,13 @@ router.put("/update-user/:id", async (req, res) => {
       return res.status(403).json({ error: "ไม่อนุญาตให้อัพเดตผู้ใช้" });
     }
 
+    const hashedPassword = await bcrypt.hash(updateform.pass, 10);
+    updateform.pass = hashedPassword;
+
     const userUpdate = await Email.findByIdAndUpdate(userId, updateform, {
       new: true,
     });
-    
+
     res.status(200).json(userUpdate);
   } catch (error) {
     console.error("Error: ", error);
