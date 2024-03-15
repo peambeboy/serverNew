@@ -53,7 +53,7 @@ router.put("/update/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { status, parcel } = req.body;
+    const { status, parcel,provider } = req.body;
 
     // ตรวจสอบว่าข้อมูล successtime และ canceltime ถูกส่งมาหรือไม่
     if (!status) {
@@ -64,16 +64,18 @@ router.put("/update/:id", async (req, res) => {
 
     if (status === "สำเร็จ") {
       updateFields = {
-        status: req.body.status,
+        status: status,
         successtime: new Date(),
         canceltime: null,
-        parcel: req.body.parcel,
+        provider: provider,
+        parcel: parcel,
       };
     } else if (status === "ปฏิเสธ") {
       updateFields = {
-        status: req.body.status,
+        status: status,
         canceltime: new Date(),
         successtime: null,
+        provider: "คำสั่งซื้อถูกปฏิเสธ",
         parcel: "คำสั่งซื้อถูกปฏิเสธ",
       };
     } else if (status === "กำลังดำเนินการ") {
@@ -81,6 +83,7 @@ router.put("/update/:id", async (req, res) => {
         status: req.body.status,
         canceltime: null,
         successtime: null,
+        provider: "อยู่ระหว่างดำเนินการตรวจสอบ",
         parcel: "อยู่ระหว่างดำเนินการตรวจสอบ",
       };
     }
