@@ -81,7 +81,7 @@ router.put("/update/:id", async (req, res) => {
         status: req.body.status,
         canceltime: null,
         successtime: null,
-        parcel: null,
+        parcel: "อยู่ระหว่างดำเนินการตรวจสอบ",
       };
     }
 
