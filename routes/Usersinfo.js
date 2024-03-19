@@ -49,23 +49,12 @@ router.get("/:id", async (req, res) => {
 
 // Create a new user
 router.post("/", async (req, res) => {
-  const { email } = req.body;
+  const data = req.body;
 
   try {
-    // ตรวจสอบว่ามี email นี้ในฐานข้อมูลหรือไม่
-    let existingUser = await Usersinfo.findOne({ email });
-
-    if (existingUser) {
-      // หากมีให้อัพเดทข้อมูล
-      existingUser.set(req.body); // กำหนดข้อมูลใหม่
-      await existingUser.save(); // บันทึกการเปลี่ยนแปลง
-      res.json(existingUser); // ส่งข้อมูลผู้ใช้ที่ถูกอัพเดทกลับไป
-    } else {
-      // หากไม่มีให้สร้างข้อมูลผู้ใช้ใหม่
-      const newUser = new Usersinfo(req.body);
-      await newUser.save();
-      res.json(newUser);
-    }
+    const newUser = new Usersinfo(data);
+    await newUser.save();
+    res.json(newUser);
   } catch (error) {
     console.error("Error creating/updating user:", error);
     res.status(500).json({ error: "Internal server error" });
