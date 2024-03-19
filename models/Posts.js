@@ -7,11 +7,11 @@ const postSchema = new mongoose.Schema({
     type: String,
     enum: ["Freesize", "Oversize", "XS", "S", "M", "L", "XL"],
     required: true,
-  }, 
+  },
   detail: { type: String, required: true },
   price: { type: String, required: true },
   amount: { type: String, required: true },
-  image: Buffer, 
+  image: { type: Buffer, required: true },
 });
 
 const Posts = mongoose.model("Posts", postSchema);
