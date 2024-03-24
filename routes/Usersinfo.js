@@ -18,13 +18,13 @@ router.get("/address", async (req, res) => {
   const email = req.query.email;
 
   try {
-    const userInfo = await Usersinfo.findOne({ email: email });
+    const userInfos = await Usersinfo.find({ email: email });
 
-    if (!userInfo) {
+    if (!userInfos || userInfos.length === 0) {
       return res.status(404).json({ error: "ไม่พบข้อมูลผู้ใช้" });
     }
 
-    res.json(userInfo);
+    res.json(userInfos);
   } catch (error) {
     console.error("Error fetching user data:", error);
     res.status(500).json({ error: "Internal server error" });
