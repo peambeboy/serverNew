@@ -20,8 +20,10 @@ router.get("/address", async (req, res) => {
   try {
     const userInfos = await Usersinfo.find({ email: email });
 
-    if (!userInfos || userInfos.length === 0) {
+    if (!userInfos) {
       return res.status(404).json({ error: "ไม่พบข้อมูลผู้ใช้" });
+    } else if (userInfos.length === 0) {
+      return res.json([]);
     }
 
     res.json(userInfos);
