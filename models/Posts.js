@@ -9,8 +9,8 @@ const postSchema = new mongoose.Schema({
     required: true,
   },
   detail: { type: String, required: true },
-  price: { type: String, required: true },
-  amount: { type: String, required: true },
+  price: { type: Number, required: true },
+  amount: { type: Number, required: true },
   image: { type: Buffer, required: true },
 });
 

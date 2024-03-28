@@ -2,7 +2,11 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const Order = require("../models/Order");
+const Posts = require("../models/Posts");
 const axios = require("axios");
+// require("dotenv").config();
+
+const URL = process.env.URL_FIREBASE;
 
 const storage = multer.memoryStorage();
 const imageFilter = (req, file, cb) => {
@@ -100,125 +104,110 @@ router.put("/update/:id", async (req, res) => {
   }
 });
 
-router.post(
-  "/upload-image",
-  upload.fields([
-    { name: "image", maxCount: 1 },
-    { name: "slip", maxCount: 1 },
-  ]),
-  async (req, res) => {
-    try {
-      const {
-        productid,
-        productname,
-        category,
-        detail,
-        price,
-        amount,
-        email,
-        name,
-        tel,
-        address,
-        payment,
-      } = req.body;
+router.post("/upload-image", upload.single("slip"), async (req, res) => {
+  try {
+    const { items, email, name, tel, address, payment } = req.body;
 
-      if (
-        !productid ||
-        !productname ||
-        !category ||
-        !detail ||
-        !price ||
-        !amount ||
-        !email ||
-        !name ||
-        !tel ||
-        !address ||
-        !payment
-      ) {
-        return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
-      }
-
-      let cleanedPrice = price.replace(",", "");
-      let parsedPrice = parseInt(cleanedPrice);
-      let totalPrice = parsedPrice * parseInt(amount);
-      let formattedPrice = parsedPrice;
-      // console.log("🚀 ~ parsedPrice:", parsedPrice)
-      let formattedAmount = amount;
-      let formattedTotalPrice = totalPrice;
-
-      if (totalPrice > 1000) {
-        formattedPrice = parseInt(parsedPrice).toLocaleString();
-        formattedAmount = parseInt(amount).toLocaleString();
-        formattedTotalPrice = totalPrice.toLocaleString();
-      }
-
-      let image;
-      let slip;
-
-      if (payment === "โอนเงิน") {
-        slip = req.files["slip"][0].buffer;
-      }
-      axios
-        .get(`${process.env.URL_FIREBASE}/posts/${productid}`)
-        .then((response) => {
-          const res = response.data;
-          console.log(res);
-
-          const body = {
-            amount: res.amount - amount,
-          };
-
-          axios
-            .put(`${process.env.URL_FIREBASE}/${productid}`, body)
-            .then((response) => {
-              console.log(response.data);
-            })
-            .catch((error) => {
-              console.error("Error updating data:", error);
-            });
-        })
-        .catch((error) => {
-          console.error("Error fetching data:", error);
-        });
-
-      // const dateTimeString = new Date();
-      // const momentObj = moment(dateTimeString);
-      // const bangkokTime = momentObj.tz("Asia/Bangkok");
-      // console.log("🚀 ~ bangkokTime:", bangkokTime)
-      // const bangkokTimeformat = bangkokTime.format("YYYY-MM-DD HH:mm:ss");
-      // console.log("🚀 ~ bangkokTimeformat:", bangkokTimeformat);
-
-      const newPost = new Order({
-        productid,
-        productname,
-        category,
-        detail,
-        price: formattedPrice,
-        amount: formattedAmount,
-        totalprice: formattedTotalPrice,
-        // image: image,
-        email,
-        name,
-        tel,
-        address,
-        parcel: "อยู่ระหว่างดำเนินการตรวจสอบ",
-        slip: slip,
-        payment,
-        ordertime: new Date(),
-      });
-
-      const savedPost = await newPost.save();
-
-      res.json({
-        message: "บันทึกข้อมูลสำเร็จ",
-        newPost: savedPost,
-      });
-    } catch (error) {
-      console.error("เกิดข้อผิดพลาด:", error);
-      res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (
+      !items ||
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      !email ||
+      !name ||
+      !tel ||
+      !address ||
+      !payment
+    ) {
+      return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
     }
+
+    // ตรวจสอบค่า productid ในทุก items
+    for (const item of items) {
+      if (!item.productid) {
+        return res
+          .status(400)
+          .json({ message: "กรุณากรอก productid ให้ครบถ้วน" });
+      }
+    }
+
+    // คำนวณราคาสินค้า
+    let totalPrice = 0;
+    for (const item of items) {
+      const parsedPrice = parseInt(item.price);
+      totalPrice += parsedPrice * parseInt(item.amount);
+    }
+
+    // ตรวจสอบการชำระเงินและดึงข้อมูล slip จาก req.files
+    let slip;
+    if (payment === "โอนเงิน") {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ message: "กรุณาแนบหลักฐานการโอนเงิน" });
+      }
+      slip = req.file.buffer;
+    }
+
+    for (const item of items) {
+      try {
+        const product = await Posts.findById(item.productid);
+
+        if (!product) {
+          return res.status(400).json({
+            message: `ไม่พบสินค้าที่มี productid เป็น ${item.productid}`,
+          });
+        }
+
+        console.log(`Product with productid ${item.productid} exists.`);
+
+        // ตรวจสอบจำนวนสินค้าในคลัง
+        if (product.amount < item.amount) {
+          return res.status(400).json({
+            message: `สินค้าที่มี productid เป็น ${item.productid} มีจำนวนไม่เพียงพอ`,
+          });
+        }
+
+        console.log(
+          `สินค้าที่มี productid เป็น ${item.productid} มีจำนวนเพียงพอ`
+        );
+
+        // ลบจำนวนสินค้าที่ถูกสั่งซื้อออกจากคลัง
+        product.amount -= item.amount;
+        await product.save();
+      } catch (error) {
+        console.error(`เกิดข้อผิดพลาดในการค้นหาสินค้า: ${error.message}`);
+        return res
+          .status(500)
+          .json({ message: "เกิดข้อผิดพลาดในการตรวจสอบ productid" });
+      }
+    }
+
+    // สร้าง object ใหม่เพื่อบันทึกลงฐานข้อมูล
+    const newPost = new Order({
+      items,
+      totalprice: totalPrice,
+      email,
+      name,
+      tel,
+      address,
+      parcel: "อยู่ระหว่างดำเนินการตรวจสอบ",
+      slip,
+      payment,
+      ordertime: new Date(),
+    });
+
+    // บันทึกข้อมูลลงฐานข้อมูล
+    const savedPost = await newPost.save();
+
+    // ส่งข้อมูลที่บันทึกแล้วกลับไป
+    res.json({
+      message: "บันทึกข้อมูลสำเร็จ",
+      newPost: savedPost,
+    });
+  } catch (error) {
+    console.error("เกิดข้อผิดพลาด:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
   }
-);
+});
 
 //Show image
 router.get("/images/:postId", async (req, res) => {
@@ -404,7 +393,7 @@ router.get("/dashboard", async (req, res) => {
     const totalpriceMontlyCancel = totalPriceMontlyCancel;
     const totalamountMontlyCancel = totalAmountMontlyCancel;
     axios
-      .get(`${process.env.URL_FIREBASE}/posts`)
+      .get(`https://asia-east2-ads-hop.cloudfunctions.net/app/posts`)
       .then((response) => {
         const ProductCount = response.data.length;
         res.json({
