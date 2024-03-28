@@ -169,7 +169,7 @@ router.post(
           };
 
           axios
-            .put(`${process.env.URL_FIREBASE}/${productid}`, body)
+            .put(`${process.env.URL_FIREBASE}/posts/${productid}`, body)
             .then((response) => {
               console.log(response.data);
             })

@@ -24,7 +24,7 @@ const orderSchema = new mongoose.Schema({
   tel: { type: String, required: true },
   address: { type: String, required: true },
   parcel: { type: String, required: true },
-  provider: { type: String},
+  provider: { type: String, required: true },
   slip: Buffer,
   ordertime: { type: Date, default: Date.now },
   successtime: { type: Date },
