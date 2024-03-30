@@ -6,11 +6,9 @@ const cartSchema = new mongoose.Schema({
   productname: { type: String, required: true },
   category: { type: String, required: true },
   size: {
-    size: {
-      type: String,
-      enum: ["Freesize", "Oversize", "XS", "S", "M", "L", "XL"],
-      required: true,
-    },
+    type: String,
+    enum: ["Freesize", "Oversize", "XS", "S", "M", "L", "XL"],
+    required: true,
   },
   detail: { type: String, required: true },
   price: { type: Number, required: true },
