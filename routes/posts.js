@@ -21,8 +21,23 @@ const upload = multer({
 
 //Get all posts
 router.get("/", async (req, res) => {
-  const listOfPosts = await Posts.find(); // ใช้ Posts.find() แทน Sequelize Model ในการค้นหาข้อมูล
-  res.json(listOfPosts);
+  try {
+    let query = {};
+    if (req.query.search) {
+      query = {
+        $or: [
+          { name: { $regex: req.query.search, $options: "i" } },
+          { category: { $regex: req.query.search, $options: "i" } },
+          // สามารถเพิ่มเงื่อนไขค้นหาเพิ่มเติมได้ตามความต้องการ
+        ],
+      };
+    }
+    const listOfPosts = await Posts.find(query);
+    res.json(listOfPosts);
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    res.status(500).json({ error: "Error fetching posts" });
+  }
 });
 
 router.post("/upload-image", upload.single("image"), async (req, res) => {
@@ -42,7 +57,6 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
 
     // รับรูปภาพจากคำขอ
     const image = req.file.buffer;
-
 
     // บันทึกรูปภาพลงใน MongoDB
     const newPost = new Posts({
