@@ -5,9 +5,16 @@ const cartSchema = new mongoose.Schema({
   email: { type: String, required: true },
   productname: { type: String, required: true },
   category: { type: String, required: true },
+  size: {
+    size: {
+      type: String,
+      enum: ["Freesize", "Oversize", "XS", "S", "M", "L", "XL"],
+      required: true,
+    },
+  },
   detail: { type: String, required: true },
-  price: { type: String, required: true },
-  amount: { type: String, required: true },
+  price: { type: Number, required: true },
+  amount: { type: Number, required: true },
   // image: Buffer,
 });
 
