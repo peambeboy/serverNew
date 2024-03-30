@@ -28,17 +28,25 @@ router.get("/", async (req, res) => {
   }
 });
 
-
 router.post("/upload-image", async (req, res) => {
   try {
-    const { productid, email, productname, category, detail, price, amount } =
-      req.body;
+    const {
+      productid,
+      email,
+      productname,
+      category,
+      size,
+      detail,
+      price,
+      amount,
+    } = req.body;
 
     if (
       !productid ||
       !email ||
       !productname ||
       !category ||
+      !size ||
       !detail ||
       !price ||
       !amount
@@ -46,17 +54,15 @@ router.post("/upload-image", async (req, res) => {
       return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
     }
 
-    let formattedPrice = parseInt(price).toLocaleString();
-    let formattedAmount = parseInt(amount).toLocaleString();
-
     const newPost = new Cart({
       productid,
       email,
       productname,
       category,
+      size,
       detail,
-      price: formattedPrice,
-      amount: formattedAmount,
+      price,
+      amount,
     });
 
     const savedPost = await newPost.save();

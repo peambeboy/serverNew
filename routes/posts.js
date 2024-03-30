@@ -46,7 +46,6 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
     if (
       !req.body.name ||
       !req.body.category ||
-      !req.body.size ||
       !req.body.detail ||
       !req.body.price ||
       !req.body.amount ||
@@ -62,7 +61,6 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
     const newPost = new Posts({
       name: req.body.name,
       category: req.body.category,
-      size: req.body.size,
       detail: req.body.detail,
       price: req.body.price,
       amount: req.body.amount,
