@@ -10,12 +10,16 @@ const Order = require("./routes/Order");
 const Usersinfo = require("./routes/Usersinfo");
 const Cart = require("./routes/Cart");
 const cors = require("cors");
+require('dotenv').config();
+
 
 mongoose.Promise = global.Promise;
 
+const URI = process.env.URI_MONGO
+
 mongoose
   .connect(
-    "mongodb+srv://peambeboy:1234@cluster0.sy2alpl.mongodb.net/?retryWrites=true&w=majority"
+    `${URI}`
   )
   .then(() => {
     console.log("Connection successfully");
