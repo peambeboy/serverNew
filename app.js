@@ -10,7 +10,7 @@ const Order = require("./routes/Order");
 const Usersinfo = require("./routes/Usersinfo");
 const Cart = require("./routes/Cart");
 const cors = require("cors");
-require('dotenv').config();
+require('dotenv').config();// ทำไม
 
 
 mongoose.Promise = global.Promise;
