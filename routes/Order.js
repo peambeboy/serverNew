@@ -107,6 +107,12 @@ router.put("/update/:id", async (req, res) => {
 router.post("/upload-image", upload.single("slip"), async (req, res) => {
   try {
     const { items, email, name, tel, address, payment } = req.body;
+    console.log("🚀 ~ file: Order.js:110 ~ router.post ~ payment:", payment);
+    console.log("🚀 ~ file: Order.js:110 ~ router.post ~ address:", address);
+    console.log("🚀 ~ file: Order.js:110 ~ router.post ~ tel:", tel);
+    console.log("🚀 ~ file: Order.js:110 ~ router.post ~ name:", name);
+    console.log("🚀 ~ file: Order.js:110 ~ router.post ~ email:", email);
+    console.log("🚀 ~ file: Order.js:110 ~ router.post ~ items:", items);
 
     // ตรวจสอบข้อมูลที่จำเป็น
     if (
