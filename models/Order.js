@@ -1,15 +1,22 @@
 const mongoose = require("mongoose");
 
-const orderItemSchema = new mongoose.Schema({
-  productid: {
-    type: String,
-    required: true,
+const orderItemSchema = new mongoose.Schema(
+  {
+    productid: {
+      type: String,
+      required: true,
+    },
+    productname: { type: String, required: true },
+    category: { type: String, required: true },
+    size: {
+      type: String,
+      enum: ["Freesize", "Oversize", "XS", "S", "M", "L", "XL"],
+    },
+    price: { type: Number, required: true },
+    amount: { type: Number, required: true },
   },
-  productname: { type: String, required: true },
-  category: { type: String, required: true },
-  price: { type: Number, required: true },
-  amount: { type: Number, required: true },
-});
+  { _id: false }
+);
 
 const orderSchema = new mongoose.Schema({
   status: {
@@ -32,7 +39,11 @@ const orderSchema = new mongoose.Schema({
   name: { type: String, required: true },
   tel: { type: String, required: true },
   address: { type: String, required: true },
-  parcel: { type: String, required: true },
+  parcel: {
+    type: String,
+    default: "อยู่ระหว่างดำเนินการตรวจสอบ",
+    required: true,
+  },
   slip: Buffer,
   ordertime: { type: Date, default: Date.now },
   successtime: { type: Date },
