@@ -42,60 +42,18 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// router.post("/", async (req, res) => {
-//   try {
-//     const order = req.body;
-//     const newOrder = await Order.create(order);
-//     res.json(newOrder);
-//   } catch (error) {
-//     console.error("เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ:", error);
-//     res.status(500).json({ error: "เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ" });
-//   }
-// });
-
 router.put("/update/:id", async (req, res) => {
   try {
     const { id } = req.params;
-
     const { status, parcel, provider } = req.body;
 
-    // ตรวจสอบว่าข้อมูล successtime และ canceltime ถูกส่งมาหรือไม่
     if (!status) {
       return res.status(400).json({ message: "กรุณาระบุ status" });
     }
 
-    let updateFields;
+    const updateFields = generateUpdateFields(status, parcel, provider);
 
-    if (status === "สำเร็จ") {
-      updateFields = {
-        status: status,
-        successtime: new Date(),
-        canceltime: null,
-        provider: provider,
-        parcel: parcel,
-      };
-    } else if (status === "ปฏิเสธ") {
-      updateFields = {
-        status: status,
-        canceltime: new Date(),
-        successtime: null,
-        provider: "คำสั่งซื้อถูกปฏิเสธ",
-        parcel: "คำสั่งซื้อถูกปฏิเสธ",
-      };
-    } else if (status === "กำลังดำเนินการ") {
-      updateFields = {
-        status: req.body.status,
-        canceltime: null,
-        successtime: null,
-        provider: "อยู่ระหว่างดำเนินการตรวจสอบ",
-        parcel: "อยู่ระหว่างดำเนินการตรวจสอบ",
-      };
-    }
-
-    // อัปเดตข้อมูลใน MongoDB
-    const updatedOrder = await Order.findByIdAndUpdate(id, updateFields, {
-      new: true,
-    });
+    const updatedOrder = await updateOrderInDatabase(id, updateFields);
 
     res.json({ message: "อัปเดตข้อมูลเรียบร้อย", updatedOrder });
   } catch (error) {
@@ -104,101 +62,78 @@ router.put("/update/:id", async (req, res) => {
   }
 });
 
+function generateUpdateFields(status, parcel, provider) {
+  switch (status) {
+    case "สำเร็จ":
+      return {
+        status,
+        successtime: new Date(),
+        canceltime: null,
+        provider,
+        parcel,
+      };
+    case "ปฏิเสธ":
+      return {
+        status,
+        canceltime: new Date(),
+        successtime: null,
+        provider: "คำสั่งซื้อถูกปฏิเสธ",
+        parcel: "คำสั่งซื้อถูกปฏิเสธ",
+      };
+    case "กำลังดำเนินการ":
+      return {
+        status,
+        canceltime: null,
+        successtime: null,
+        provider: "อยู่ระหว่างดำเนินการตรวจสอบ",
+        parcel: "อยู่ระหว่างดำเนินการตรวจสอบ",
+      };
+    default:
+      throw new Error("Status ไม่ถูกต้อง");
+  }
+}
+
+async function updateOrderInDatabase(id, updateFields) {
+  return await Order.findByIdAndUpdate(id, updateFields, { new: true });
+}
+
 router.post("/upload-image", upload.single("slip"), async (req, res) => {
   try {
     const { items, email, name, tel, address, payment } = req.body;
 
-    // ตรวจสอบข้อมูลที่จำเป็น
-    if (
-      !items ||
-      !Array.isArray(items) ||
-      items.length === 0 ||
-      !email ||
-      !name ||
-      !tel ||
-      !address ||
-      !payment
-    ) {
+    if (!isDataValid(items, email, name, tel, address, payment)) {
       return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
     }
 
-    // ตรวจสอบค่า productid ในทุก items
-    for (const item of items) {
-      if (!item.productid) {
-        return res
-          .status(400)
-          .json({ message: "กรุณากรอก productid ให้ครบถ้วน" });
-      }
+    if (!areProductIdsValid(items)) {
+      return res
+        .status(400)
+        .json({ message: "กรุณากรอก productid ให้ครบถ้วน" });
     }
 
-    // คำนวณราคาสินค้า
-    let totalPrice = 0;
-    for (const item of items) {
-      const parsedPrice = parseInt(item.price);
-      totalPrice += parsedPrice * parseInt(item.amount);
-    }
+    const totalPrice = calculateTotalPrice(items);
 
-    // ตรวจสอบการชำระเงินและดึงข้อมูล slip จาก req.files
     let slip;
     if (payment === "โอนเงิน") {
-      if (!req.file || !req.file.buffer) {
+      slip = validateAndRetrieveSlip(req.file);
+      if (!slip) {
         return res.status(400).json({ message: "กรุณาแนบหลักฐานการโอนเงิน" });
       }
-      slip = req.file.buffer;
     }
 
-    for (const item of items) {
-      try {
-        const product = await Posts.findById(item.productid);
+    await processOrderItems(items);
 
-        if (!product) {
-          return res.status(400).json({
-            message: `ไม่พบสินค้าที่มี productid เป็น ${item.productid}`,
-          });
-        }
-
-        console.log(`Product with productid ${item.productid} exists.`);
-
-        // ตรวจสอบจำนวนสินค้าในคลัง
-        if (product.amount < item.amount) {
-          return res.status(400).json({
-            message: `สินค้าที่มี productid เป็น ${item.productid} มีจำนวนไม่เพียงพอ`,
-          });
-        }
-
-        console.log(
-          `สินค้าที่มี productid เป็น ${item.productid} มีจำนวนเพียงพอ`
-        );
-
-        // ลบจำนวนสินค้าที่ถูกสั่งซื้อออกจากคลัง
-        product.amount -= item.amount;
-        await product.save();
-      } catch (error) {
-        console.error(`เกิดข้อผิดพลาดในการค้นหาสินค้า: ${error.message}`);
-        return res
-          .status(500)
-          .json({ message: "เกิดข้อผิดพลาดในการตรวจสอบ productid" });
-      }
-    }
-
-    // สร้าง object ใหม่เพื่อบันทึกลงฐานข้อมูล
-    const newPost = new Order({
+    const savedPost = await saveOrderToDatabase(
       items,
-      totalprice: totalPrice,
+      totalPrice,
       email,
       name,
       tel,
       address,
-      parcel: "อยู่ระหว่างดำเนินการตรวจสอบ",
       slip,
-      payment,
-      ordertime: new Date(),
-    });
+      payment
+    );
 
-    // บันทึกข้อมูลลงฐานข้อมูล
-    const savedPost = await newPost.save();
-
-    // ส่งข้อมูลที่บันทึกแล้วกลับไป
     res.json({
       message: "บันทึกข้อมูลสำเร็จ",
       newPost: savedPost,
@@ -208,6 +143,89 @@ router.post("/upload-image", upload.single("slip"), async (req, res) => {
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
   }
 });
+
+// ตรวจสอบข้อมูลที่จำเป็น
+function isDataValid(items, email, name, tel, address, payment) {
+  return (
+    items &&
+    Array.isArray(items) &&
+    items.length > 0 &&
+    email &&
+    name &&
+    tel &&
+    address &&
+    payment
+  );
+}
+
+// ตรวจสอบค่า productid ในทุก items
+function areProductIdsValid(items) {
+  return items.every((item) => item.productid);
+}
+
+// คำนวณราคาสินค้า
+function calculateTotalPrice(items) {
+  return items.reduce((total, item) => {
+    const parsedPrice = parseInt(item.price);
+    return total + parsedPrice * parseInt(item.amount);
+  }, 0);
+}
+
+// ตรวจสอบการชำระเงินและดึงข้อมูล slip จาก req.files
+function validateAndRetrieveSlip(file) {
+  return file && file.buffer ? file.buffer : null;
+}
+
+// ตรวจสอบและประมวลผลสินค้าที่สั่งซื้อ
+async function processOrderItems(items) {
+  for (const item of items) {
+    const product = await findProductById(item.productid);
+    if (!product) {
+      throw new Error(`ไม่พบสินค้าที่มี productid เป็น ${item.productid}`);
+    }
+    if (product.amount < item.amount) {
+      throw new Error(
+        `สินค้าที่มี productid เป็น ${item.productid} มีจำนวนไม่เพียงพอ`
+      );
+    }
+    product.amount -= item.amount;
+    await product.save();
+  }
+}
+
+// ค้นหาสินค้าโดยใช้ productid
+async function findProductById(productId) {
+  try {
+    return await Posts.findById(productId);
+  } catch (error) {
+    throw new Error(`เกิดข้อผิดพลาดในการค้นหาสินค้า: ${error.message}`);
+  }
+}
+
+// บันทึกข้อมูลลงในฐานข้อมูล
+async function saveOrderToDatabase(
+  items,
+  totalPrice,
+  email,
+  name,
+  tel,
+  address,
+  slip,
+  payment
+) {
+  const newPost = new Order({
+    items,
+    totalprice: totalPrice,
+    email,
+    name,
+    tel,
+    address,
+    slip,
+    payment,
+    ordertime: new Date(),
+  });
+  return await newPost.save();
+}
 
 //Show image
 router.get("/images/:postId", async (req, res) => {
