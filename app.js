@@ -10,6 +10,7 @@ const Order = require("./routes/Order");
 const Usersinfo = require("./routes/Usersinfo");
 const Cart = require("./routes/Cart");
 const cors = require("cors");
+const bodyParser = require('body-parser');
 require('dotenv').config();
 
 
@@ -32,6 +33,9 @@ var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 
 var app = express();
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+
 app.use(cors());
 
 // view engine setup

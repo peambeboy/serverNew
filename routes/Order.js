@@ -19,7 +19,7 @@ const imageFilter = (req, file, cb) => {
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 1024 * 1024 * 5 },
+  limits: { fileSize: 1024 * 1024 * 10 },
   fileFilter: imageFilter,
 });
 
@@ -140,7 +140,9 @@ router.post("/upload-image", upload.single("slip"), async (req, res) => {
     });
   } catch (error) {
     console.error("เกิดข้อผิดพลาด:", error);
-    res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
+    res
+      .status(500)
+      .json({ message: `เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error}` });
   }
 });
 
@@ -228,23 +230,23 @@ async function saveOrderToDatabase(
 }
 
 //Show image
-router.get("/images/:postId", async (req, res) => {
-  try {
-    const postId = req.params.postId;
-    const post = await Order.findById(postId);
+// router.get("/images/:postId", async (req, res) => {
+//   try {
+//     const postId = req.params.postId;
+//     const post = await Order.findById(postId);
 
-    if (!post || !post.image) {
-      return res.status(404).json({ message: "ไม่พบรูปภาพ" });
-    }
+//     if (!post || !post.image) {
+//       return res.status(404).json({ message: "ไม่พบรูปภาพ" });
+//     }
 
-    // ส่งรูปภาพกลับไปให้ผู้ใช้
-    res.set("Content-Type", "image/jpeg"); // กำหนด Content-Type ตามประเภทของรูปภาพ (JPEG, ในที่นี้)
-    res.send(post.image);
-  } catch (error) {
-    console.error("เกิดข้อผิดพลาด:", error);
-    res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงรูปภาพ" });
-  }
-});
+//     // ส่งรูปภาพกลับไปให้ผู้ใช้
+//     res.set("Content-Type", "image/jpeg"); // กำหนด Content-Type ตามประเภทของรูปภาพ (JPEG, ในที่นี้)
+//     res.send(post.image);
+//   } catch (error) {
+//     console.error("เกิดข้อผิดพลาด:", error);
+//     res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงรูปภาพ" });
+//   }
+// });
 
 //Show slip
 router.get("/slip/:postId", async (req, res) => {
