@@ -5,6 +5,7 @@ const postSchema = new mongoose.Schema({
   category: { type: String, required: true },
   detail: { type: String, required: true },
   price: { type: Number, required: true },
+  pricesale: { type: Number },
   amount: {
     Freesize: { type: Number, default: 0 },
     Oversize: { type: Number, default: 0 },
@@ -16,7 +17,8 @@ const postSchema = new mongoose.Schema({
   },
   sale: {
     saleornot: { type: Boolean, default: false },
-    salestart: { type: Date, default: Date.now },
+    salepercent: { type: Number, default: 0 },
+    salestart: { type: Date},
     saleend: { type: Date },
   },
   image: { type: Buffer, required: true },
