@@ -14,6 +14,11 @@ const postSchema = new mongoose.Schema({
     L: { type: Number, default: 0 },
     XL: { type: Number, default: 0 },
   },
+  sale: {
+    saleornot: { type: Boolean, default: false },
+    salestart: { type: Date, default: Date.now },
+    saleend: { type: Date },
+  },
   image: { type: Buffer, required: true },
 });
 

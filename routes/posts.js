@@ -64,6 +64,7 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
       detail: req.body.detail,
       price: req.body.price,
       amount: req.body.amount,
+      sale: req.body.sale,
       image: image, // เก็บข้อมูลรูปภาพในฐานข้อมูล
     });
 
