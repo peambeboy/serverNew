@@ -5,7 +5,15 @@ const postSchema = new mongoose.Schema({
   category: { type: String, required: true },
   detail: { type: String, required: true },
   price: { type: Number, required: true },
-  amount: { type: Number, required: true },
+  amount: {
+    Freesize: { type: Number, default: 0 },
+    Oversize: { type: Number, default: 0 },
+    XS: { type: Number, default: 0 },
+    S: { type: Number, default: 0 },
+    M: { type: Number, default: 0 },
+    L: { type: Number, default: 0 },
+    XL: { type: Number, default: 0 },
+  },
   image: { type: Buffer, required: true },
 });
 
