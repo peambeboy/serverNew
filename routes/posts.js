@@ -64,6 +64,7 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
       detail: req.body.detail,
       price: req.body.price,
       amount: req.body.amount,
+      sale: req.body.sale,
       image: image, // เก็บข้อมูลรูปภาพในฐานข้อมูล
     });
 
@@ -93,6 +94,46 @@ router.put("/:id", upload.single("image"), async (req, res) => {
 
     if (req.body.amount <= 0) {
       req.body.amount = "สินค้าหมด";
+    }
+
+    const post = await Posts.findById(postId);
+
+    if (
+      updatedData["sale"] &&
+      updatedData["sale"]["saleornot"] === "true" &&
+      updatedData["sale"]["salepercent"] !== 0
+    ) {
+      try {
+        if (!post) {
+          return res.status(404).json({ error: "ไม่พบโพสต์ที่ต้องการอัปเดต" });
+        }
+
+        // หาจำนวนเงินที่ลดลงจากเปอร์เซ็นต์ส่วนลด
+        const discountAmount = post.price * (req.body.sale.salepercent / 100);
+
+        // หาราคาสินค้าหลังหักเปอร์เซ็นต์ส่วนลด
+        const discountedPrice = post.price - discountAmount;
+
+        updatedData.pricesale = discountedPrice;
+        if (post.sale.salestart == undefined) {
+          updatedData.sale.salestart = new Date();
+          updatedData.sale.saleend = post.sale.saleend;
+        } else {
+          updatedData.sale.salestart = post.sale.salestart;
+          updatedData.sale.saleend = post.sale.saleend;
+        }
+      } catch (error) {
+        console.error("Error updating post:", error);
+        res.status(500).json({ error: "เกิดข้อผิดพลาดในการอัปเดตโพสต์" });
+      }
+    } else if (
+      updatedData["sale"] &&
+      updatedData["sale"]["saleornot"] === "false"
+    ) {
+      updatedData.sale.saleend = new Date();
+      updatedData.sale.salestart = post.sale.salestart;
+      updatedData.sale.salepercent = 0;
+      updatedData.pricesale = 0;
     }
 
     // ค้นหาและอัปเดตข้อมูลโพสต์โดยใช้ ID
