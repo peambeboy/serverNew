@@ -61,10 +61,6 @@ router.post("/upload-image", async (req, res) => {
       email: email,
       size: size,
     });
-    console.log(
-      "🚀 ~ file: Cart.js:62 ~ router.post ~ existingProduct:",
-      existingProduct
-    );
 
     if (existingProduct) {
       // หากพบสินค้าที่ตรงกัน
