@@ -54,23 +54,70 @@ router.post("/upload-image", async (req, res) => {
       return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
     }
 
-    const newPost = new Cart({
-      productid,
-      email,
-      productname,
-      category,
-      size,
-      detail,
-      price,
-      amount,
+    const newPrice = price * amount;
+
+    const existingProduct = await Cart.findOne({
+      productid: productid,
+      email: email,
+      size: size,
     });
 
-    const savedPost = await newPost.save();
+    if (existingProduct) {
+      // หากพบสินค้าที่ตรงกัน
 
-    res.json({
-      message: "บันทึกข้อมูลสำเร็จ",
-      newPost: savedPost,
-    });
+      // ทำการคำนวณราคาและจำนวนใหม่
+      const updatedPrice = existingProduct.price + newPrice;
+      const updatedAmount = existingProduct.amount + amount;
+
+      // อัปเดตข้อมูลในเอกสาร
+      const updatedProduct = await Cart.findOneAndUpdate(
+        {
+          productid: productid,
+          email: email,
+          size: size,
+        },
+        {
+          price: updatedPrice,
+          amount: updatedAmount,
+        },
+        {
+          new: true, // เพื่อให้คืนค่าข้อมูลที่ถูกอัปเดตกลับมา
+        }
+      );
+
+      // ตรวจสอบว่าอัปเดตสำเร็จหรือไม่
+      if (updatedProduct) {
+        // สามารถทำตามกระบวนการที่ต้องการได้
+        res.json({
+          message: "อัปเดตข้อมูลสำเร็จ",
+          updatedProduct: updatedProduct,
+        });
+      } else {
+        // กรณีที่ไม่สามารถอัปเดตข้อมูลได้
+        res.status(500).json({ message: "เกิดข้อผิดพลาดในการอัปเดตข้อมูล" });
+      }
+    } else {
+      // หากไม่พบสินค้าที่ตรงกัน
+
+      // หากไม่มีสินค้าที่มี _id เดียวกัน สร้างสินค้าใหม่
+      const newPost = new Cart({
+        productid,
+        email,
+        productname,
+        category,
+        size,
+        detail,
+        price: newPrice,
+        amount,
+      });
+
+      const savedPost = await newPost.save();
+
+      res.json({
+        message: "บันทึกข้อมูลสำเร็จ",
+        newPost: savedPost,
+      });
+    }
   } catch (error) {
     console.error("เกิดข้อผิดพลาด:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
