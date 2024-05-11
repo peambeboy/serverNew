@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer"); // ใช้ Multer สำหรับการอัปโหลดไฟล์
 const Posts = require("../models/Posts");
-const axios = require("axios");
 
 const storage = multer.memoryStorage();
 const imageFilter = (req, file, cb) => {
