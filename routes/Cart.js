@@ -63,9 +63,7 @@ router.post("/upload-image", async (req, res) => {
     });
 
     if (existingProduct) {
-      // หากพบสินค้าที่ตรงกัน
-
-      // ทำการคำนวณราคาและจำนวนใหม่
+      // หากพบสินค้าที่ตรงกันในตะกร้าสินค้า
       const updatedPrice = existingProduct.price + newPrice;
       const updatedAmount = existingProduct.amount + amount;
 
@@ -97,9 +95,6 @@ router.post("/upload-image", async (req, res) => {
         res.status(500).json({ message: "เกิดข้อผิดพลาดในการอัปเดตข้อมูล" });
       }
     } else {
-      // หากไม่พบสินค้าที่ตรงกัน
-
-      // หากไม่มีสินค้าที่มี _id เดียวกัน สร้างสินค้าใหม่
       const newPost = new Cart({
         productid,
         email,
