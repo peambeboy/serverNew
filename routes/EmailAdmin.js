@@ -3,53 +3,6 @@ const router = express.Router();
 const bcrypt = require("bcryptjs"); // Import bcryptjs library
 const Email = require("../models/Email");
 
-const ADMIN_AFK_TIMEOUT = 10 * 60 * 1000; // 10 นาทีในมิลลิวินาที
-
-// เก็บข้อมูลเกี่ยวกับการเข้าสู่ระบบของแอดมินที่ลงชื่อเข้าใช้ล่าสุด
-let adminActivities = {}; // เก็บข้อมูลการกระทำของแต่ละแอดมิน
-
-// Endpoint เพื่อตรวจสอบการไม่มีกิจกรรมของแอดมิน
-router.get("/check-admin-activity/:adminId", async (req, res) => {
-  try {
-    const adminId = req.params.adminId;
-    const currentTime = new Date().getTime();
-
-    if (
-      !adminActivities[adminId] ||
-      currentTime - adminActivities[adminId] > ADMIN_AFK_TIMEOUT
-    ) {
-      // เตะแอดมินออกจากสถานะล็อคอิน
-      delete adminActivities[adminId];
-      res.json({ message: "ไม่มีกิจกรรมของแอดมินในเวลาที่กำหนด" });
-    } else {
-      console.log("adminActivities---check---->", adminActivities);
-      const total = currentTime - adminActivities[adminId];
-      console.log("🚀 ~ file: EmailAdmin.js:26 ~ router.get ~ total:", total);
-      res.json({ message: "แอดมินกำลังใช้งานอยู่" });
-    }
-  } catch (error) {
-    console.error("Error: ", error);
-    res
-      .status(500)
-      .json({ error: "เกิดข้อผิดพลาดในการตรวจสอบกิจกรรมของแอดมิน" });
-  }
-});
-
-// Endpoint เพื่อบันทึกการเข้าถึงของแอดมิน
-router.post("/admin-activity/:adminId", async (req, res) => {
-  try {
-    const adminId = req.params.adminId;
-    adminActivities[adminId] = new Date().getTime(); // บันทึกเวลาที่แอดมินมีกิจกรรมล่าสุด
-    console.log("adminActivities----->", adminActivities);
-    res.json({ message: "บันทึกกิจกรรมของแอดมินเรียบร้อย" });
-  } catch (error) {
-    console.error("Error: ", error);
-    res
-      .status(500)
-      .json({ error: "เกิดข้อผิดพลาดในการบันทึกกิจกรรมของแอดมิน" });
-  }
-});
-
 //Check Admin
 router.post("/", async (req, res) => {
   try {
@@ -129,6 +82,13 @@ router.put("/update-user/:id", async (req, res) => {
       userstatus: req.body.userstatus,
       updatetime: new Date(),
     };
+
+    if (updateform.userstatus !== "user" && updateform.userstatus !== "admin") {
+      return res
+        .status(400)
+        .json({ message: "userstatus ต้องเป็น 'user' หรือ 'admin' เท่านั้น" });
+    }
+
     const userUpdater = await Email.findById(_id);
 
     const existingUser = await Email.findOne({ user: updateform.user });
@@ -157,8 +117,20 @@ router.put("/update-user/:id", async (req, res) => {
 });
 
 router.get("/check-user", async (req, res) => {
-  const listOfPosts = await Email.find();
-  res.json(listOfPosts);
+  const user = req.query.user;
+  try {
+    let users;
+    if (user) {
+      users = await Email.find({ user: user });
+    } else {
+      users = await Email.find();
+    }
+
+    res.json(users);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 module.exports = router;
