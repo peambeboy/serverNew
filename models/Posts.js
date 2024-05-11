@@ -7,8 +7,6 @@ const postSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   pricesale: { type: Number },
   amount: {
-    Freesize: { type: Number, default: 0 },
-    Oversize: { type: Number, default: 0 },
     XS: { type: Number, default: 0 },
     S: { type: Number, default: 0 },
     M: { type: Number, default: 0 },
