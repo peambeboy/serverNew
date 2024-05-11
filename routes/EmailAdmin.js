@@ -88,7 +88,7 @@ router.put("/update-user/:id", async (req, res) => {
         .status(400)
         .json({ message: "userstatus ต้องเป็น 'user' หรือ 'admin' เท่านั้น" });
     }
-    
+
     const userUpdater = await Email.findById(_id);
 
     const existingUser = await Email.findOne({ user: updateform.user });
@@ -117,8 +117,20 @@ router.put("/update-user/:id", async (req, res) => {
 });
 
 router.get("/check-user", async (req, res) => {
-  const listOfPosts = await Email.find();
-  res.json(listOfPosts);
+  const user = req.query.user;
+  try {
+    let users;
+    if (user) {
+      users = await Email.find({ user: user });
+    } else {
+      users = await Email.find();
+    }
+
+    res.json(users);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 module.exports = router;
