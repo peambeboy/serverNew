@@ -13,6 +13,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const http = require("http");
 const WebSocket = require("ws");
+const { URL } = require("url");
 const Token = require("./models/Token");
 const RevokedToken = require("./models/RevokedToken");
 require("dotenv").config();
@@ -30,37 +31,57 @@ mongoose
     console.error(err);
   });
 
+// const checkIndexes = async () => {
+//   const indexes = await RevokedToken.collection.getIndexes({ full: true });
+//   console.log(indexes);
+// };
+
+// checkIndexes();
+
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 
 var app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
+
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 
 // เก็บข้อมูลการเชื่อมต่อ WebSocket
 const clients = new Map();
 
-wss.on("connection", (ws, req) => {
-  const userId = req.url.split("?userId=")[1];
-  if (!clients.has(userId)) {
-    clients.set(userId, []);
-  }
-  clients.get(userId).push(ws);
+wss.on("connection", (connection, req) => {
+  const token = req.headers["sec-websocket-protocol"];
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET); // ตรวจสอบและถอดรหัส token
+      const user = decoded.user;
 
-  ws.on("close", () => {
-    const userConnections = clients.get(userId);
-    if (userConnections) {
-      const index = userConnections.indexOf(ws);
-      if (index !== -1) {
-        userConnections.splice(index, 1);
+      console.log("🚀 ~ file: app.js:48 ~ wss.on ~ userId:", user);
+
+      if (user) {
+        // เก็บการเชื่อมต่อใหม่ในแผนที่
+        clients.set(user, connection);
+
+        connection.on("close", () => {
+          clients.delete(user);
+        });
+
+        connection.on("message", (message) => {
+          console.log(`Received message from ${user}: ${message}`);
+        });
+      } else {
+        console.log("ไม่พบ userId ใน token");
       }
-      if (userConnections.length === 0) {
-        clients.delete(userId);
-      }
+    } catch (err) {
+      console.log("Token ไม่ถูกต้อง:", err.message);
+      connection.close();
     }
-  });
+  } else {
+    console.log("ไม่พบ token ใน header");
+    connection.close();
+  }
 });
 
 // ทำให้ clients สามารถถูกใช้งานใน routes ได้
@@ -90,9 +111,11 @@ app.use("/cart", Cart);
 const checkTokenExpiry = async (clients) => {
   const now = Date.now();
   const tokens = await Token.find({ expiresAt: { $lte: now } });
+  console.log("🚀 ~ file: app.js:107 ~ checkTokenExpiry ~ tokens:", tokens);
 
   tokens.forEach(async (token) => {
     const ws = clients.get(token.user);
+    console.log("🚀 ~ file: app.js:110 ~ tokens.forEach ~ ws:", ws);
     if (ws) {
       ws.send(
         JSON.stringify({ type: "TOKEN_EXPIRED", message: "Token หมดอายุ" })
@@ -126,7 +149,7 @@ app.use(function (err, req, res, next) {
   res.render("error");
 });
 
-app.listen(() => {
+server.listen(3002, () => {
   console.log(`Server is running on port 3001`);
 });
 
