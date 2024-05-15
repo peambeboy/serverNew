@@ -2,6 +2,7 @@ const Token = require("../models/Token");
 const RevokedToken = require("../models/RevokedToken");
 const dotenv = require("dotenv");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 // Load environment variables
@@ -40,15 +41,31 @@ const verifyToken = async (req, res, next) => {
 
 // ฟังก์ชันสำหรับสร้าง token ใหม่
 const generateNewToken = async (user) => {
-  const newToken = jwt.sign({ user: user }, secretKey, {
-    expiresIn: "1h",
-  });
-  await Token.findOneAndUpdate(
-    { user: user },
-    { token: newToken },
-    { upsert: true, new: true }
-  );
-  return newToken;
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const newToken = jwt.sign({ user: user }, secretKey, {
+      expiresIn: "1h",
+    });
+
+    const expiresAt = new Date(Date.now() + 3600 * 1000);
+
+    await Token.findOneAndUpdate(
+      { user: user },
+      { token: newToken, expiresAt: expiresAt },
+      { upsert: true, new: true, session: session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return newToken;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
 // ฟังก์ชันสำหรับสร้าง token ใหม่

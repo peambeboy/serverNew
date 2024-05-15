@@ -10,18 +10,19 @@ const Order = require("./routes/Order");
 const Usersinfo = require("./routes/Usersinfo");
 const Cart = require("./routes/Cart");
 const cors = require("cors");
-const bodyParser = require('body-parser');
-require('dotenv').config();
-
+const bodyParser = require("body-parser");
+const http = require("http");
+const WebSocket = require("ws");
+const Token = require("./models/Token");
+const RevokedToken = require("./models/RevokedToken");
+require("dotenv").config();
 
 mongoose.Promise = global.Promise;
 
-const URI = process.env.URI_MONGO
+const URI = process.env.URI_MONGO;
 
 mongoose
-  .connect(
-    `${URI}`
-  )
+  .connect(`${URI}`)
   .then(() => {
     console.log("Connection successfully");
   })
@@ -33,8 +34,37 @@ var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 
 var app = express();
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+
+// เก็บข้อมูลการเชื่อมต่อ WebSocket
+const clients = new Map();
+
+wss.on("connection", (ws, req) => {
+  const userId = req.url.split("?userId=")[1];
+  if (!clients.has(userId)) {
+    clients.set(userId, []);
+  }
+  clients.get(userId).push(ws);
+
+  ws.on("close", () => {
+    const userConnections = clients.get(userId);
+    if (userConnections) {
+      const index = userConnections.indexOf(ws);
+      if (index !== -1) {
+        userConnections.splice(index, 1);
+      }
+      if (userConnections.length === 0) {
+        clients.delete(userId);
+      }
+    }
+  });
+});
+
+// ทำให้ clients สามารถถูกใช้งานใน routes ได้
+app.set("clients", clients);
 
 app.use(cors());
 
@@ -55,6 +85,30 @@ app.use("/email", Email);
 app.use("/order", Order);
 app.use("/usersinfo", Usersinfo);
 app.use("/cart", Cart);
+
+// ฟังก์ชันสำหรับตรวจสอบและแจ้งเตือนโทเคนหมดอายุ
+const checkTokenExpiry = async (clients) => {
+  const now = Date.now();
+  const tokens = await Token.find({ expiresAt: { $lte: now } });
+
+  tokens.forEach(async (token) => {
+    const ws = clients.get(token.user);
+    if (ws) {
+      ws.send(
+        JSON.stringify({ type: "TOKEN_EXPIRED", message: "Token หมดอายุ" })
+      );
+    }
+
+    // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
+    await RevokedToken.create({
+      token: token.token,
+      expiresAt: new Date(Date.now() + 3600 * 1000), // 1 ชั่วโมงจากตอนนี้
+    });
+  });
+};
+
+// ตั้งเวลาให้ตรวจสอบโทเคนหมดอายุทุกนาที
+setInterval(() => checkTokenExpiry(clients), 60 * 1000);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
