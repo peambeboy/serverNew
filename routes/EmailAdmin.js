@@ -1,25 +1,52 @@
 const express = require("express");
 const router = express.Router();
-const bcrypt = require("bcryptjs"); // Import bcryptjs library
-const Email = require("../models/Email");
+const bcrypt = require("bcryptjs");
+const Token = require("../models/Token");
+const jwt = require("jsonwebtoken");
+const RevokedToken = require("../models/RevokedToken");
+const dotenv = require("dotenv");
+const {
+  verifyToken,
+  generateNewToken,
+  generateToken,
+  hashPassword,
+} = require("../utilities/token");
 
-//Check Admin
-router.post("/", async (req, res) => {
+// Load environment variables
+dotenv.config();
+
+// Use environment variable for secret key
+const secretKey = process.env.JWT_SECRET || "default_secret_key";
+
+// Login Admin
+router.post("/login", async (req, res) => {
   try {
     const { user, pass } = req.body;
 
-    const result = await Email.findOne({ user: user });
+    const result = await Token.findOne({ user: user });
 
     if (result) {
       // ตรวจสอบรหัสผ่าน
       const isPasswordValid = await bcrypt.compare(pass, result.pass);
       if (isPasswordValid) {
-        res.json({ isAdmin: true });
+        // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
+        await RevokedToken.create({
+          token: result.token,
+          expiresAt: new Date(Date.now() + 3600 * 1000), // 1 ชั่วโมงจากตอนนี้
+        });
+
+        // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
+        const newToken = await generateNewToken(result.user);
+
+        // ส่ง token ใหม่กลับไปใน header
+        res.setHeader("Authorization", newToken);
+
+        res.json({ isAdmin: true, token: newToken }); // ส่ง token กลับไปให้ admin
       } else {
-        res.json({ isAdmin: false });
+        res.status(401).json({ isAdmin: false, message: "รหัสผ่านไม่ถูกต้อง" });
       }
     } else {
-      res.json({ isAdmin: false });
+      res.status(401).json({ isAdmin: false, message: "ไม่พบผู้ใช้" });
     }
   } catch (err) {
     console.error("เกิดข้อผิดพลาดในการค้นหาในฐานข้อมูล:", err);
@@ -27,43 +54,90 @@ router.post("/", async (req, res) => {
   }
 });
 
-//Add Admin
-router.post("/user", async (req, res) => {
+// Add Admin (ต้องมีการตรวจสอบ token ก่อน)
+router.post("/user", verifyToken, async (req, res) => {
   try {
     const { user, pass } = req.body;
 
-    // ตรวจสอบว่าอีเมลซ้ำกันหรือไม่
-    const existingEmail = await Email.findOne({ user: user });
+    const tokenAdmin = req.headers["authorization"];
+    const decoded = jwt.verify(tokenAdmin, secretKey);
+
+    const findAdmin = await Token.findOne({ user: decoded.user });
+
+    if (findAdmin.roles !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "คุณไม่มีสิทธิ์ในการเพิ่มผู้ใช้" });
+    }
+
+    // ตรวจสอบว่า user ซ้ำกันหรือไม่
+    const existingEmail = await Token.findOne({ user: user });
 
     if (existingEmail) {
       return res.status(400).json({ message: "user นี้มีอยู่แล้วในระบบ" });
     }
 
     // Hash รหัสผ่านก่อนเก็บลงในฐานข้อมูล
-    const hashedPassword = await bcrypt.hash(pass, 10); // 10 เป็นค่า salt rounds
+    const hashedPassword = await hashPassword(pass);
 
-    const createdEmail = await Email.create({ user, pass: hashedPassword });
-    res.json(createdEmail);
+    // สร้าง token และเก็บในฐานข้อมูล Token
+    const token = generateToken(user);
+
+    const createdUser = await Token.create({
+      user,
+      pass: hashedPassword,
+      token: token,
+    });
+
+    // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
+    await RevokedToken.create({
+      token: findAdmin.token,
+      expiresAt: new Date(Date.now() + 3600 * 1000), // 1 ชั่วโมงจากตอนนี้
+    });
+
+    // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
+    const newToken = await generateNewToken(decoded.user);
+
+    // ส่ง token ใหม่กลับไปใน header
+    res.setHeader("Authorization", newToken);
+
+    res.json({ user: createdUser });
   } catch (err) {
     console.error("เกิดข้อผิดพลาดในการสร้าง user:", err);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการสร้าง user" });
   }
 });
 
-//Delete email admin
-router.delete("/delete-user/:id", async (req, res) => {
+// Delete email admin (ต้องมีการตรวจสอบ token ก่อน)
+router.delete("/delete-user/:id", verifyToken, async (req, res) => {
   try {
     const userId = req.params.id;
-    const { _id } = req.body;
-    const user = await Email.findById(_id);
-    const userDel = await Email.findById(userId);
+
+    const tokenAdmin = req.headers["authorization"];
+    const decoded = jwt.verify(tokenAdmin, secretKey);
+
+    const findAdmin = await Token.findOne({ user: decoded.user });
+    if (findAdmin.roles !== "admin") {
+      return res.status(403).json({ error: "คุณไม่มีสิทธิ์ในการลบผู้ใช้" });
+    }
+    const userDel = await Token.findById(userId);
     if (!userDel) {
       return res.status(404).json({ error: "ไม่พบผู้ใช้ที่ต้องการลบ" });
     }
-    if (user.userstatus !== "admin") {
-      return res.status(403).json({ error: "คุณไม่มีสิทธิ์ในการลบผู้ใช้" });
-    }
-    await Email.findByIdAndDelete(userId);
+    await Token.findByIdAndDelete(userId);
+
+    // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
+    await RevokedToken.create({
+      token: findAdmin.token,
+      expiresAt: new Date(Date.now() + 3600 * 1000), // 1 ชั่วโมงจากตอนนี้
+    });
+
+    // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
+    const newToken = await generateNewToken(decoded.user);
+
+    // ส่ง token ใหม่กลับไปใน header
+    res.setHeader("Authorization", newToken);
+
     res.json({ message: "ลบผู้ใช้สำเร็จ" });
   } catch (error) {
     console.error("Error deleting user:", error);
@@ -71,43 +145,63 @@ router.delete("/delete-user/:id", async (req, res) => {
   }
 });
 
-//Update Admin
-router.put("/update-user/:id", async (req, res) => {
+// Update Admin (ต้องมีการตรวจสอบ token ก่อน)
+router.put("/update-user/:id", verifyToken, async (req, res) => {
   try {
+    const token = req.headers["authorization"];
+    const decoded = jwt.verify(token, secretKey);
+
     const userId = req.params.id;
-    const _id = req.body._id;
+    // const _id = req.body._id;
     const updateform = {
       user: req.body.user,
       pass: req.body.pass,
-      userstatus: req.body.userstatus,
+      roles: req.body.roles,
       updatetime: new Date(),
     };
 
-    if (updateform.userstatus !== "user" && updateform.userstatus !== "admin") {
-      return res
-        .status(400)
-        .json({ message: "userstatus ต้องเป็น 'user' หรือ 'admin' เท่านั้น" });
+    if (updateform.roles) {
+      if (updateform.roles !== "user" && updateform.roles !== "admin") {
+        return res.status(400).json({
+          message: "userstatus ต้องเป็น 'user' หรือ 'admin' เท่านั้น",
+        });
+      }
     }
+    const userUpdater = await Token.findOne({ user: decoded.user });
 
-    const userUpdater = await Email.findById(_id);
-
-    const existingUser = await Email.findOne({ user: updateform.user });
+    const existingUser = await Token.findOne({ user: updateform.user });
     if (existingUser && existingUser._id.toString() !== userId) {
       return res
         .status(400)
         .json({ error: "ชื่อผู้ใช้ซ้ำกับผู้ใช้ที่มีอยู่แล้ว" });
     }
 
-    if (userUpdater.userstatus !== "admin") {
-      return res.status(403).json({ error: "ไม่อนุญาตให้อัพเดตผู้ใช้" });
+    // ตรวจสอบว่าผู้ใช้ที่ทำการอัปเดตเป็น admin หรือเป็นเจ้าของข้อมูลเอง
+    if (
+      userUpdater.roles !== "admin" &&
+      userUpdater._id.toString() !== userId
+    ) {
+      return res.status(403).json({ error: "ไม่อนุญาตให้อัพเดตผู้ใช้อื่น" });
     }
 
     const hashedPassword = await bcrypt.hash(updateform.pass, 10);
     updateform.pass = hashedPassword;
 
-    const userUpdate = await Email.findByIdAndUpdate(userId, updateform, {
+    const userUpdate = await Token.findByIdAndUpdate(userId, updateform, {
       new: true,
     });
+
+    // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
+    await RevokedToken.create({
+      token: req.headers["authorization"],
+      expiresAt: new Date(Date.now() + 3600 * 1000), // 1 ชั่วโมงจากตอนนี้
+    });
+
+    // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
+    const newToken = await generateNewToken(updateform.user);
+
+    // ส่ง token ใหม่กลับไปใน header
+    res.setHeader("Authorization", newToken);
 
     res.status(200).json(userUpdate);
   } catch (error) {
@@ -116,15 +210,36 @@ router.put("/update-user/:id", async (req, res) => {
   }
 });
 
-router.get("/check-user", async (req, res) => {
+// Check user
+router.get("/check-user", verifyToken, async (req, res) => {
   const user = req.query.user;
+
+  const tokenAdmin = req.headers["authorization"];
+  const decoded = jwt.verify(tokenAdmin, secretKey);
+
+  const findAdmin = await Token.findOne({ user: decoded.user });
+  if (findAdmin.roles !== "admin") {
+    return res.status(403).json({ error: "คุณไม่มีสิทธิ์ในการตรวจสอบผู้ใช้" });
+  }
   try {
     let users;
     if (user) {
-      users = await Email.find({ user: user });
+      users = await Token.find({ user: user });
     } else {
-      users = await Email.find();
+      users = await Token.find();
     }
+
+    // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
+    await RevokedToken.create({
+      token: findAdmin.token,
+      expiresAt: new Date(Date.now() + 3600 * 1000), // 1 ชั่วโมงจากตอนนี้
+    });
+
+    // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
+    const newToken = await generateNewToken(decoded.user);
+
+    // ส่ง token ใหม่กลับไปใน header
+    res.setHeader("Authorization", newToken);
 
     res.json(users);
   } catch (err) {

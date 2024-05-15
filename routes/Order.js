@@ -121,7 +121,13 @@ router.post("/upload-image", upload.single("slip"), async (req, res) => {
       }
     }
 
-    await processOrderItems(items);
+    const processOrder = await processOrderItems(items);
+
+    if (processOrder === 400) {
+      return res.status(400).send("สินค้าไม่เพียงพอ");
+    } else if (processOrder === 404) {
+      return res.status(404).send("ไม่พบสินค้า");
+    }
 
     const savedPost = await saveOrderToDatabase(
       items,
@@ -183,14 +189,12 @@ async function processOrderItems(items) {
   for (const item of items) {
     const product = await findProductById(item.productid);
     if (!product) {
-      throw new Error(`ไม่พบสินค้าที่มี productid เป็น ${item.productid}`);
+      return 404;
     }
-    if (product.amount < item.amount) {
-      throw new Error(
-        `สินค้าที่มี productid เป็น ${item.productid} มีจำนวนไม่เพียงพอ`
-      );
+    if (product.amount[item.size] < item.amount) {
+      return 400;
     }
-    product.amount -= item.amount;
+    product.amount[item.size] -= item.amount;
     await product.save();
   }
 }
