@@ -10,6 +10,7 @@ const Order = require("./routes/Order");
 const Usersinfo = require("./routes/Usersinfo");
 const Cart = require("./routes/Cart");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
 const http = require("http");
 const WebSocket = require("ws");
@@ -51,35 +52,37 @@ app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 // เก็บข้อมูลการเชื่อมต่อ WebSocket
 const clients = new Map();
 
-wss.on("connection", (connection, req) => {
-  const token = req.headers["sec-websocket-protocol"];
-  if (token) {
+wss.on("connection", async (connection, req) => {
+  const username = req.headers["sec-websocket-protocol"];
+  if (username) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET); // ตรวจสอบและถอดรหัส token
-      const user = decoded.user;
+      const findUser = await Token.findOne({ user: username });
 
-      console.log("🚀 ~ file: app.js:48 ~ wss.on ~ userId:", user);
-
-      if (user) {
-        // เก็บการเชื่อมต่อใหม่ในแผนที่
-        clients.set(user, connection);
-
-        connection.on("close", () => {
-          clients.delete(user);
-        });
-
-        connection.on("message", (message) => {
-          console.log(`Received message from ${user}: ${message}`);
-        });
-      } else {
-        console.log("ไม่พบ userId ใน token");
+      if (!findUser) {
+        connection.send(JSON.stringify({ error: "ไม่พบผู้ใช้" }));
+        return connection.close();
       }
+
+      // เก็บการเชื่อมต่อใหม่ในแผนที่
+      clients.set(username, connection);
+
+      connection.on("close", () => {
+        clients.delete(username);
+      });
+
+      connection.on("message", (message) => {
+        console.log(`Received message from ${username}: ${message}`);
+      });
     } catch (err) {
-      console.log("Token ไม่ถูกต้อง:", err.message);
+      console.error("Error finding user:", err);
+      connection.send(
+        JSON.stringify({ error: "เกิดข้อผิดพลาดในการค้นหาผู้ใช้" })
+      );
       connection.close();
     }
   } else {
-    console.log("ไม่พบ token ใน header");
+    console.log("ไม่พบ username ใน header");
+    connection.send(JSON.stringify({ error: "ไม่พบ username ใน header" }));
     connection.close();
   }
 });
@@ -115,18 +118,11 @@ const checkTokenExpiry = async (clients) => {
 
   tokens.forEach(async (token) => {
     const ws = clients.get(token.user);
-    console.log("🚀 ~ file: app.js:110 ~ tokens.forEach ~ ws:", ws);
     if (ws) {
       ws.send(
         JSON.stringify({ type: "TOKEN_EXPIRED", message: "Token หมดอายุ" })
       );
     }
-
-    // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
-    await RevokedToken.create({
-      token: token.token,
-      expiresAt: new Date(Date.now() + 3600 * 1000), // 1 ชั่วโมงจากตอนนี้
-    });
   });
 };
 
@@ -150,7 +146,7 @@ app.use(function (err, req, res, next) {
 });
 
 server.listen(3002, () => {
-  console.log(`Server is running on port 3001`);
+  console.log(`Server is running on port 3001 && WSS is running on port 3002`);
 });
 
 module.exports = app;
