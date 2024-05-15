@@ -24,6 +24,17 @@ tokenSchema.pre("save", function (next) {
   next();
 });
 
+// Middleware สำหรับกำหนดเวลาในการอัปเดตเมื่อมีการอัปเดตข้อมูล
+tokenSchema.pre("findOneAndUpdate", function (next) {
+  this.set({ updatetime: new Date() });
+  next();
+});
+
+tokenSchema.pre("updateOne", function (next) {
+  this.set({ updatetime: new Date() });
+  next();
+});
+
 const TokenModel = mongoose.model("Token", tokenSchema);
 
 module.exports = TokenModel;
