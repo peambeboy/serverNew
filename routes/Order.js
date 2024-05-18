@@ -4,8 +4,20 @@ const multer = require("multer");
 const Order = require("../models/Order");
 const Posts = require("../models/Posts");
 const axios = require("axios");
-// require("dotenv").config();
+const dotenv = require("dotenv");
+const jwt = require("jsonwebtoken");
+const Token = require("../models/Token");
 
+require("dotenv").config();
+
+const {
+  verifyToken,
+  generateNewToken,
+  generateToken,
+  hashPassword,
+} = require("../utilities/token");
+
+const secretKey = process.env.JWT_SECRET;
 const URL = process.env.URL_FIREBASE;
 
 const storage = multer.memoryStorage();
@@ -316,8 +328,11 @@ router.get("/email", async (req, res) => {
 });
 
 //Get for Dashboard
-router.get("/dashboard", async (req, res) => {
+router.get("/dashboard",verifyToken, async (req, res) => {
   try {
+    const tokenAdmin = req.headers["authorization"];
+    const decoded = jwt.verify(tokenAdmin, secretKey);
+    const findAdmin = await Token.findOne({ user: decoded.user });
     const listOfOrdersSuccess = await Order.find({ status: "สำเร็จ" });
     const listOfOrdersWait = await Order.find({ status: "กำลังดำเนินการ" });
     const listOfOrdersCancel = await Order.find({ status: "ปฏิเสธ" });
@@ -418,6 +433,7 @@ router.get("/dashboard", async (req, res) => {
     const totalpriceMontlyCancel = totalPriceMontlyCancel;
     const totalamountMontlyCancel = totalAmountMontlyCancel;
     const ProductCount = await Posts.countDocuments();
+    const newToken = await generateNewToken(decoded.user, findAdmin);
 
     res.json({
       totalamountMontlyWait,
@@ -436,6 +452,7 @@ router.get("/dashboard", async (req, res) => {
       ProductCountSuccess,
       ProductCountCancel,
       ProductCountWait,
+      newToken
     });
   } catch (error) {
     console.error("Error:", error);
