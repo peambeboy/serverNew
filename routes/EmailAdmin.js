@@ -11,6 +11,7 @@ const {
   generateToken,
   hashPassword,
 } = require("../utilities/token");
+const { find } = require("../models/Order");
 
 // Load environment variables
 dotenv.config();
@@ -29,14 +30,8 @@ router.post("/login", async (req, res) => {
       // ตรวจสอบรหัสผ่าน
       const isPasswordValid = await bcrypt.compare(pass, result.pass);
       if (isPasswordValid) {
-        // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
-        await RevokedToken.create({
-          token: result.token,
-          expiresAt: new Date(Date.now() + 3600 * 1000), // 1 ชั่วโมงจากตอนนี้
-        });
-
         // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
-        const newToken = await generateNewToken(result.user);
+        const newToken = await generateNewToken(result.user,result);
 
         // ส่ง token ใหม่กลับไปใน header
         res.setHeader("Authorization", newToken);
@@ -89,14 +84,8 @@ router.post("/user", verifyToken, async (req, res) => {
       token: token,
     });
 
-    // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
-    await RevokedToken.create({
-      token: findAdmin.token,
-      expiresAt: new Date(Date.now() + 3600 * 1000), // 1 ชั่วโมงจากตอนนี้
-    });
-
     // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
-    const newToken = await generateNewToken(decoded.user);
+    const newToken = await generateNewToken(decoded.user,findAdmin);
 
     // ส่ง token ใหม่กลับไปใน header
     res.setHeader("Authorization", newToken);
@@ -126,14 +115,8 @@ router.delete("/delete-user/:id", verifyToken, async (req, res) => {
     }
     await Token.findByIdAndDelete(userId);
 
-    // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
-    await RevokedToken.create({
-      token: findAdmin.token,
-      expiresAt: new Date(Date.now() + 3600 * 1000), // 1 ชั่วโมงจากตอนนี้
-    });
-
     // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
-    const newToken = await generateNewToken(decoded.user);
+    const newToken = await generateNewToken(decoded.user,findAdmin);
 
     // ส่ง token ใหม่กลับไปใน header
     res.setHeader("Authorization", newToken);
@@ -184,14 +167,8 @@ router.put("/update-user/:id", verifyToken, async (req, res) => {
       return res.status(403).json({ error: "ไม่อนุญาตให้อัพเดตผู้ใช้อื่น" });
     }
 
-    // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
-    await RevokedToken.create({
-      token: req.headers["authorization"],
-      expiresAt: new Date(Date.now() + 3600 * 1000), // 1 ชั่วโมงจากตอนนี้
-    });
-
     // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
-    const newToken = await generateNewToken(updateform.user);
+    const newToken = await generateNewToken(updateform.user,req.headers["authorization"]);
 
     // ส่ง token ใหม่กลับไปใน header
     res.setHeader("Authorization", newToken);
@@ -228,20 +205,10 @@ router.get("/check-user", verifyToken, async (req, res) => {
     } else {
       users = await Token.find();
     }
-
-    // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
-    await RevokedToken.create({
-      token: findAdmin.token,
-      expiresAt: new Date(Date.now() + 3600 * 1000), // 1 ชั่วโมงจากตอนนี้
-    });
-
     // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
-    const newToken = await generateNewToken(decoded.user);
+    const newToken = await generateNewToken(decoded.user,findAdmin);
 
-    // ส่ง token ใหม่กลับไปใน header
-    res.setHeader("Authorization", newToken);
-
-    res.json(users);
+    res.json({users,newToken});
   } catch (err) {
     console.error("Error fetching users:", err);
     res.status(500).json({ error: "Internal server error" });
