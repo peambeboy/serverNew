@@ -11,7 +11,6 @@ const {
   generateToken,
   hashPassword,
 } = require("../utilities/token");
-const { find } = require("../models/Order");
 
 // Load environment variables
 dotenv.config();
