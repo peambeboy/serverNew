@@ -350,32 +350,33 @@ router.get("/dashboard", async (req, res) => {
         orderDate.getMonth() + 1 === currentMonth &&
         orderDate.getFullYear() === currentYear
       ) {
-        const price = parseInt(order.totalprice.replace(/,/g, ""));
-        const amount = parseInt(order.amount.replace(/,/g, ""));
+        const price = order.totalprice;
+        const amount = order.amount;
         totalAmountMontlyCancel += amount;
         totalPriceMontlyCancel += price;
         ProductCountCancel++;
       }
-      const price = parseInt(order.totalprice.replace(/,/g, ""));
-      const amount = parseInt(order.amount.replace(/,/g, ""));
+      const price = order.totalprice;
+      const amount = order.amount;
       totalAmountCancel += amount;
       totalPriceCancel += price;
     });
 
     listOfOrdersWait.forEach((order) => {
+      console.log("🚀 ~ file: Order.js:366 ~ listOfOrdersWait.forEach ~ order:", order);
       const orderDate = new Date(order.ordertime);
       if (
         orderDate.getMonth() + 1 === currentMonth &&
         orderDate.getFullYear() === currentYear
       ) {
-        const price = parseInt(order.totalprice.replace(/,/g, ""));
-        const amount = parseInt(order.amount.replace(/,/g, ""));
+        const price = order.totalprice;
+        const amount = order.items[0].amount;
         totalAmountMontlyWait += amount;
         totalPriceMontlyWait += price;
         ProductCountWait++;
       }
-      const price = parseInt(order.totalprice.replace(/,/g, ""));
-      const amount = parseInt(order.amount.replace(/,/g, ""));
+      const price = order.totalprice;
+      const amount = order.items[0].amount;
       totalAmountWait += amount;
       totalPriceWait += price;
     });
@@ -386,14 +387,14 @@ router.get("/dashboard", async (req, res) => {
         orderDate.getMonth() + 1 === currentMonth &&
         orderDate.getFullYear() === currentYear
       ) {
-        const price = parseInt(order.totalprice.replace(/,/g, ""));
-        const amount = parseInt(order.amount.replace(/,/g, ""));
+        const price = order.totalprice;
+        const amount = order.items[0].amount;
         totalAmountSuccessMontly += amount;
         totalPriceSuccessMontly += price;
         ProductCountSuccess++;
       }
-      const price = parseInt(order.totalprice.replace(/,/g, ""));
-      const amount = parseInt(order.amount.replace(/,/g, ""));
+      const price = order.totalprice;
+      const amount = order.amount;
       totalAmountSuccess += amount;
       totalPriceSuccess += price;
     });
@@ -416,33 +417,26 @@ router.get("/dashboard", async (req, res) => {
     //เดือนปัจจุบัน cancel
     const totalpriceMontlyCancel = totalPriceMontlyCancel;
     const totalamountMontlyCancel = totalAmountMontlyCancel;
-    axios
-      .get(`https://asia-east2-ads-hop.cloudfunctions.net/app/posts`)
-      .then((response) => {
-        const ProductCount = response.data.length;
-        res.json({
-          totalamountMontlyWait,
-          totalpriceMontlyWait,
-          totalamountWait,
-          totalpriceWait,
-          totalamountMontlyCancel,
-          totalpriceMontlyCancel,
-          totalamountCancel,
-          totalpriceCancel,
-          totalamountMontlySuccess,
-          totalpriceMontlySuccess,
-          totalamountSuccess,
-          totalpriceSuccess,
-          ProductCount,
-          ProductCountSuccess,
-          ProductCountCancel,
-          ProductCountWait,
-        });
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        res.status(500).json({ message: "Internal Server Error" });
-      });
+    const ProductCount = await Posts.countDocuments();
+
+    res.json({
+      totalamountMontlyWait,
+      totalpriceMontlyWait,
+      totalamountWait,
+      totalpriceWait,
+      totalamountMontlyCancel,
+      totalpriceMontlyCancel,
+      totalamountCancel,
+      totalpriceCancel,
+      totalamountMontlySuccess,
+      totalpriceMontlySuccess,
+      totalamountSuccess,
+      totalpriceSuccess,
+      ProductCount,
+      ProductCountSuccess,
+      ProductCountCancel,
+      ProductCountWait,
+    });
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
