@@ -114,7 +114,6 @@ app.use("/cart", Cart);
 const checkTokenExpiry = async (clients) => {
   const now = Date.now();
   const tokens = await Token.find({ expiresAt: { $lte: now } });
-  console.log("🚀 ~ file: app.js:107 ~ checkTokenExpiry ~ tokens:", tokens);
 
   tokens.forEach(async (token) => {
     const ws = clients.get(token.user);

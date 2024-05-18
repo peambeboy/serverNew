@@ -184,13 +184,6 @@ router.put("/update-user/:id", verifyToken, async (req, res) => {
       return res.status(403).json({ error: "ไม่อนุญาตให้อัพเดตผู้ใช้อื่น" });
     }
 
-    const hashedPassword = await bcrypt.hash(updateform.pass, 10);
-    updateform.pass = hashedPassword;
-
-    const userUpdate = await Token.findByIdAndUpdate(userId, updateform, {
-      new: true,
-    });
-
     // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
     await RevokedToken.create({
       token: req.headers["authorization"],
@@ -202,6 +195,13 @@ router.put("/update-user/:id", verifyToken, async (req, res) => {
 
     // ส่ง token ใหม่กลับไปใน header
     res.setHeader("Authorization", newToken);
+
+    const hashedPassword = await bcrypt.hash(updateform.pass, 10);
+    updateform.pass = hashedPassword;
+
+    const userUpdate = await Token.findByIdAndUpdate(userId, updateform, {
+      new: true,
+    });
 
     res.status(200).json(userUpdate);
   } catch (error) {
