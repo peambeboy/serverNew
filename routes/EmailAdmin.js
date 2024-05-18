@@ -196,7 +196,7 @@ router.put("/update-user/:id", verifyToken, async (req, res) => {
       { new: true }
     );
 
-    res.status(200).json(userUpdate, newToken);
+    res.status(200).json({userUpdate, newToken});
   } catch (error) {
     console.error("Error: ", error);
     res.status(500).json({ error: "เกิดข้อผิดพลาดในการอัพเดตผู้ใช้" });
