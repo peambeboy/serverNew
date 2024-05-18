@@ -195,9 +195,6 @@ router.get("/check-user", verifyToken, async (req, res) => {
   const decoded = jwt.verify(tokenAdmin, secretKey);
 
   const findAdmin = await Token.findOne({ user: decoded.user });
-  if (findAdmin.roles !== "admin") {
-    return res.status(403).json({ error: "คุณไม่มีสิทธิ์ในการตรวจสอบผู้ใช้" });
-  }
   try {
     let users;
     if (user) {
