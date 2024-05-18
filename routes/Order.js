@@ -124,9 +124,9 @@ router.post("/upload-image", upload.single("slip"), async (req, res) => {
     const processOrder = await processOrderItems(items);
 
     if (processOrder === 400) {
-      return res.status(400).send("สินค้าไม่เพียงพอ");
+      return res.status(400).json({ message: "สินค้าไม่เพียงพอ" });
     } else if (processOrder === 404) {
-      return res.status(404).send("ไม่พบสินค้า");
+      return res.status(404).json({ message: "ไม่พบสินค้า" });
     }
 
     const savedPost = await saveOrderToDatabase(
