@@ -40,11 +40,21 @@ const verifyToken = async (req, res, next) => {
 };
 
 // ฟังก์ชันสำหรับสร้าง token ใหม่
-const generateNewToken = async (user) => {
+const generateNewToken = async (user, result) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
+    // ตรวจสอบ Token ปัจจุบัน
+    const existingToken = await Token.findOne({ user: user });
+
+    // ถ้ามี Token ปัจจุบันและยังไม่หมดอายุ
+    if (existingToken && existingToken.expiresAt > Date.now()) {
+      await session.endSession();
+      return existingToken.token;
+    }
+
+    // ถ้าไม่มี Token ปัจจุบันหรือ Token หมดอายุแล้ว
     const newToken = jwt.sign({ user: user }, secretKey, {
       expiresIn: "1h",
     });
@@ -56,6 +66,12 @@ const generateNewToken = async (user) => {
       { token: newToken, expiresAt: expiresAt },
       { upsert: true, new: true, session: session }
     );
+
+    // ลบ token เก่าและเพิ่มลงใน blacklist พร้อมตั้งเวลาหมดอายุ
+    await RevokedToken.create({
+      token: result.token,
+      expiresAt: new Date(Date.now() + 3600 * 1000), // 1 ชั่วโมงจากตอนนี้
+    });
 
     await session.commitTransaction();
     session.endSession();
