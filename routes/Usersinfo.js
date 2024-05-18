@@ -1,12 +1,36 @@
 const express = require("express");
 const router = express.Router();
-const Usersinfo = require("../models/Usersinfo"); // แก้ไขชื่อไฟล์ตามที่จำเป็น
+const Usersinfo = require("../models/Usersinfo");
+const Token = require("../models/Token");
+const {
+  verifyToken,
+  generateNewToken,
+  generateToken,
+  hashPassword,
+} = require("../utilities/token");
+const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
+
+// Load environment variables
+dotenv.config();
+
+// Use environment variable for secret key
+const secretKey = process.env.JWT_SECRET;
 
 // Get all users
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, async (req, res) => {
   try {
+    const tokenAdmin = req.headers["authorization"];
+    const decoded = jwt.verify(tokenAdmin, secretKey);
+
+    const findAdmin = await Token.findOne({ user: decoded.user });
+
     const listOfUsers = await Usersinfo.find();
-    res.json(listOfUsers);
+
+    // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
+    const newToken = await generateNewToken(decoded.user, findAdmin);
+
+    res.json({listOfUsers,newToken});
   } catch (error) {
     console.error("Error fetching user data:", error);
     res.status(500).json({ error: "Internal server error" });
