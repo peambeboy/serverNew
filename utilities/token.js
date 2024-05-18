@@ -9,7 +9,7 @@ const bcrypt = require("bcryptjs");
 dotenv.config();
 
 // Use environment variable for secret key
-const secretKey = process.env.JWT_SECRET || "default_secret_key";
+const secretKey = process.env.JWT_SECRET;
 
 const verifyToken = async (req, res, next) => {
   const token = req.headers["authorization"]; // รับ token จาก header
