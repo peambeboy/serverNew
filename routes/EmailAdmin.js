@@ -24,12 +24,10 @@ router.post("/login", async (req, res) => {
     const { user, pass } = req.body;
 
     const result = await Token.findOne({ user: user });
-    console.log("🚀 ~ file: EmailAdmin.js:27 ~ router.post ~ result:", result);
 
     if (result) {
       // ตรวจสอบรหัสผ่าน
       const isPasswordValid = await bcrypt.compare(pass, result.pass);
-      console.log("🚀 ~ file: EmailAdmin.js:32 ~ router.post ~ isPasswordValid:", isPasswordValid);
       if (isPasswordValid) {
         // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
         const newToken = await generateNewToken(result.user,result);
