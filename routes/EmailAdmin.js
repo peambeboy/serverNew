@@ -138,10 +138,20 @@ router.put("/update-user/:id", verifyToken, async (req, res) => {
     const decoded = jwt.verify(token, secretKey);
 
     const findAdmin = await Token.findOne({ user: decoded.user });
+    const findUser = await Token.findById(req.params.id);
+    if(!findUser) return res.status(404).json({ error: "ไม่พบผู้ใช้" });
 
     const userId = req.params.id;
     const updateform = {};
 
+    if(!req.body.old) return res.status(400).json({ error: "กรุณาใส่รหัสผ่านเดิม" });
+    const oldpass = req.body.old;
+    if(oldpass) {
+      const isPasswordValid = await bcrypt.compare(oldpass, findUser.pass);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "รหัสผ่านเดิมไม่ถูกต้อง" });
+      }
+    }
     if (req.body.user) updateform.user = req.body.user;
     if (req.body.pass) updateform.pass = req.body.pass;
     if (req.body.roles) updateform.roles = req.body.roles;
