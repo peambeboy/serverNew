@@ -16,7 +16,7 @@ const {
 dotenv.config();
 
 // Use environment variable for secret key
-const secretKey = process.env.JWT_SECRET || "default_secret_key";
+const secretKey = process.env.JWT_SECRET;
 
 // Login Admin
 router.post("/login", async (req, res) => {
@@ -30,7 +30,7 @@ router.post("/login", async (req, res) => {
       const isPasswordValid = await bcrypt.compare(pass, result.pass);
       if (isPasswordValid) {
         // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
-        const newToken = await generateNewToken(result.user,result);
+        const newToken = await generateNewToken(result.user, result);
 
         // ส่ง token ใหม่กลับไปใน header
         res.setHeader("Authorization", newToken);
@@ -84,12 +84,12 @@ router.post("/user", verifyToken, async (req, res) => {
     });
 
     // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
-    const newToken = await generateNewToken(decoded.user,findAdmin);
+    const newToken = await generateNewToken(decoded.user, findAdmin);
 
     // ส่ง token ใหม่กลับไปใน header
     res.setHeader("Authorization", newToken);
 
-    res.json({ user: createdUser });
+    res.json({ user: createdUser, newToken });
   } catch (err) {
     console.error("เกิดข้อผิดพลาดในการสร้าง user:", err);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการสร้าง user" });
@@ -115,12 +115,12 @@ router.delete("/delete-user/:id", verifyToken, async (req, res) => {
     await Token.findByIdAndDelete(userId);
 
     // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
-    const newToken = await generateNewToken(decoded.user,findAdmin);
+    const newToken = await generateNewToken(decoded.user, findAdmin);
 
     // ส่ง token ใหม่กลับไปใน header
     res.setHeader("Authorization", newToken);
 
-    res.json({ message: "ลบผู้ใช้สำเร็จ" });
+    res.json({ message: "ลบผู้ใช้สำเร็จ", newToken });
   } catch (error) {
     console.error("Error deleting user:", error);
     res.status(500).json({ error: "เกิดข้อผิดพลาดในการลบผู้ใช้" });
@@ -132,7 +132,7 @@ router.put("/update-user/:id", verifyToken, async (req, res) => {
   try {
     const token = req.headers["authorization"];
     if (!token) {
-      return res.status(400).json({ error: 'Token is required' });
+      return res.status(400).json({ error: "Token is required" });
     }
 
     const decoded = jwt.verify(token, secretKey);
@@ -148,7 +148,11 @@ router.put("/update-user/:id", verifyToken, async (req, res) => {
 
     updateform.updatetime = new Date();
 
-    if (updateform.roles && updateform.roles !== "user" && updateform.roles !== "admin") {
+    if (
+      updateform.roles &&
+      updateform.roles !== "user" &&
+      updateform.roles !== "admin"
+    ) {
       return res.status(400).json({
         message: "userstatus ต้องเป็น 'user' หรือ 'admin' เท่านั้น",
       });
@@ -158,16 +162,24 @@ router.put("/update-user/:id", verifyToken, async (req, res) => {
     const existingUser = await Token.findOne({ user: updateform.user });
 
     if (existingUser && existingUser._id.toString() !== userId) {
-      return res.status(400).json({ error: "ชื่อผู้ใช้ซ้ำกับผู้ใช้ที่มีอยู่แล้ว" });
+      return res
+        .status(400)
+        .json({ error: "ชื่อผู้ใช้ซ้ำกับผู้ใช้ที่มีอยู่แล้ว" });
     }
 
     // ตรวจสอบว่าผู้ใช้ที่ทำการอัปเดตเป็น admin หรือเป็นเจ้าของข้อมูลเอง
-    if (userUpdater.roles !== "admin" && userUpdater._id.toString() !== userId) {
+    if (
+      userUpdater.roles !== "admin" &&
+      userUpdater._id.toString() !== userId
+    ) {
       return res.status(403).json({ error: "ไม่อนุญาตให้อัพเดตผู้ใช้อื่น" });
     }
 
     // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
-    const newToken = await generateNewToken(updateform.user || decoded.user, findAdmin);
+    const newToken = await generateNewToken(
+      updateform.user || decoded.user,
+      findAdmin
+    );
     updateform.token = newToken;
 
     // ส่ง token ใหม่กลับไปใน header
@@ -178,9 +190,13 @@ router.put("/update-user/:id", verifyToken, async (req, res) => {
       updateform.pass = hashedPassword;
     }
 
-    const userUpdate = await Token.findByIdAndUpdate(userId, { $set: updateform }, { new: true });
+    const userUpdate = await Token.findByIdAndUpdate(
+      userId,
+      { $set: updateform },
+      { new: true }
+    );
 
-    res.status(200).json(userUpdate);
+    res.status(200).json(userUpdate, newToken);
   } catch (error) {
     console.error("Error: ", error);
     res.status(500).json({ error: "เกิดข้อผิดพลาดในการอัพเดตผู้ใช้" });
@@ -203,9 +219,9 @@ router.get("/check-user", verifyToken, async (req, res) => {
       users = await Token.find();
     }
     // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
-    const newToken = await generateNewToken(decoded.user,findAdmin);
+    const newToken = await generateNewToken(decoded.user, findAdmin);
 
-    res.json({users,newToken});
+    res.json({ users, newToken });
   } catch (err) {
     console.error("Error fetching users:", err);
     res.status(500).json({ error: "Internal server error" });
