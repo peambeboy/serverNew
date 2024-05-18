@@ -131,53 +131,54 @@ router.delete("/delete-user/:id", verifyToken, async (req, res) => {
 router.put("/update-user/:id", verifyToken, async (req, res) => {
   try {
     const token = req.headers["authorization"];
+    if (!token) {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+
     const decoded = jwt.verify(token, secretKey);
 
+    const findAdmin = await Token.findOne({ user: decoded.user });
+
     const userId = req.params.id;
-    // const _id = req.body._id;
-    const updateform = {
-      user: req.body.user,
-      pass: req.body.pass,
-      roles: req.body.roles,
-      updatetime: new Date(),
-    };
+    const updateform = {};
 
-    if (updateform.roles) {
-      if (updateform.roles !== "user" && updateform.roles !== "admin") {
-        return res.status(400).json({
-          message: "userstatus ต้องเป็น 'user' หรือ 'admin' เท่านั้น",
-        });
-      }
+    if (req.body.user) updateform.user = req.body.user;
+    if (req.body.pass) updateform.pass = req.body.pass;
+    if (req.body.roles) updateform.roles = req.body.roles;
+
+    updateform.updatetime = new Date();
+
+    if (updateform.roles && updateform.roles !== "user" && updateform.roles !== "admin") {
+      return res.status(400).json({
+        message: "userstatus ต้องเป็น 'user' หรือ 'admin' เท่านั้น",
+      });
     }
-    const userUpdater = await Token.findOne({ user: decoded.user });
 
+    const userUpdater = await Token.findOne({ user: decoded.user });
     const existingUser = await Token.findOne({ user: updateform.user });
+
     if (existingUser && existingUser._id.toString() !== userId) {
-      return res
-        .status(400)
-        .json({ error: "ชื่อผู้ใช้ซ้ำกับผู้ใช้ที่มีอยู่แล้ว" });
+      return res.status(400).json({ error: "ชื่อผู้ใช้ซ้ำกับผู้ใช้ที่มีอยู่แล้ว" });
     }
 
     // ตรวจสอบว่าผู้ใช้ที่ทำการอัปเดตเป็น admin หรือเป็นเจ้าของข้อมูลเอง
-    if (
-      userUpdater.roles !== "admin" &&
-      userUpdater._id.toString() !== userId
-    ) {
+    if (userUpdater.roles !== "admin" && userUpdater._id.toString() !== userId) {
       return res.status(403).json({ error: "ไม่อนุญาตให้อัพเดตผู้ใช้อื่น" });
     }
 
     // สร้าง token ใหม่และอัปเดตในฐานข้อมูล
-    const newToken = await generateNewToken(updateform.user,req.headers["authorization"]);
+    const newToken = await generateNewToken(updateform.user || decoded.user, findAdmin);
+    updateform.token = newToken;
 
     // ส่ง token ใหม่กลับไปใน header
     res.setHeader("Authorization", newToken);
 
-    const hashedPassword = await bcrypt.hash(updateform.pass, 10);
-    updateform.pass = hashedPassword;
+    if (updateform.pass) {
+      const hashedPassword = await bcrypt.hash(updateform.pass, 10);
+      updateform.pass = hashedPassword;
+    }
 
-    const userUpdate = await Token.findByIdAndUpdate(userId, updateform, {
-      new: true,
-    });
+    const userUpdate = await Token.findByIdAndUpdate(userId, { $set: updateform }, { new: true });
 
     res.status(200).json(userUpdate);
   } catch (error) {
