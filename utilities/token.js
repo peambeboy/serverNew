@@ -12,30 +12,51 @@ dotenv.config();
 const secretKey = process.env.JWT_SECRET;
 
 const verifyToken = async (req, res, next) => {
-  const token = req.headers["authorization"]; // รับ token จาก header
+  const token = req.headers["authorization"];
   if (!token) return res.status(403).send("ไม่มี Token ในคำขอ");
 
   try {
-    // ตรวจสอบว่า token ถูกยกเลิกหรือไม่ในฐานข้อมูล
     const isRevoked = await RevokedToken.findOne({ token: token });
     if (isRevoked) {
       return res.status(401).send("Token นี้ถูกยกเลิกแล้ว");
     }
-    const decoded = jwt.verify(token, secretKey);
-    req.user = decoded.user; // ถ้า token ถูกต้อง ส่งข้อมูล user ไปต่อ
 
-    // ตรวจสอบว่ามีข้อมูลผู้ใช้อยู่ในฐานข้อมูลหรือไม่
+    let decoded;
+    try {
+      decoded = jwt.verify(token, secretKey);
+    } catch (err) {
+      if (err.name === "TokenExpiredError") {
+        // ตรวจสอบว่า token หมดอายุไม่เกิน 5 นาที
+        decoded = jwt.decode(token);
+        const currentTime = Math.floor(Date.now() / 1000);
+        const expiredTime = decoded.exp;
+
+        if (currentTime - expiredTime <= 300) {
+          // 300 วินาที = 5 นาที
+          req.user = decoded.user;
+          const userInDB = await Token.findOne({ user: req.user });
+          if (!userInDB) {
+            return res.status(401).send("Token ไม่ถูกต้อง");
+          }
+          next();
+          return;
+        } else {
+          return res.status(401).send("Token หมดอายุเกิน 5 นาที");
+        }
+      } else {
+        return res.status(401).send("Token ไม่ถูกต้อง");
+      }
+    }
+
+    req.user = decoded.user;
+
     const userInDB = await Token.findOne({ user: req.user });
     if (!userInDB) {
       return res.status(401).send("Token ไม่ถูกต้อง");
     }
     next();
   } catch (err) {
-    if (err.name === "TokenExpiredError") {
-      return res.status(401).send("Token หมดอายุ");
-    } else {
-      return res.status(401).send("Token ไม่ถูกต้อง");
-    }
+    return res.status(500).send("เกิดข้อผิดพลาดในเซิร์ฟเวอร์");
   }
 };
 
@@ -48,8 +69,13 @@ const generateNewToken = async (user, result) => {
     // ตรวจสอบ Token ปัจจุบัน
     const existingToken = await Token.findOne({ user: user });
 
-    // ถ้ามี Token ปัจจุบันและยังไม่หมดอายุ
-    if (existingToken && existingToken.expiresAt > Date.now()) {
+    const fiveMinutesInMillis = 5 * 60 * 1000; // 5 นาทีในรูปแบบมิลลิวินาที
+
+    // ถ้ามี Token ปัจจุบันและยังไม่หมดอายุภายใน 5 นาที
+    if (
+      existingToken &&
+      existingToken.expiresAt > Date.now() + fiveMinutesInMillis
+    ) {
       await session.endSession();
       return existingToken.token;
     }
