@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const shortid = require("shortid");
 
 const orderItemSchema = new mongoose.Schema(
   {
@@ -19,6 +20,10 @@ const orderItemSchema = new mongoose.Schema(
 );
 
 const orderSchema = new mongoose.Schema({
+  _id: {
+    type: String,
+    default: shortid.generate,
+  },
   status: {
     type: String,
     enum: ["กำลังดำเนินการ", "ปฏิเสธ", "สำเร็จ"],
