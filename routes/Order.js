@@ -328,132 +328,36 @@ router.get("/email", async (req, res) => {
 });
 
 //Get for Dashboard
-router.get("/dashboard",verifyToken, async (req, res) => {
+router.get("/dashboard", verifyToken, async (req, res) => {
   try {
     const tokenAdmin = req.headers["authorization"];
     const decoded = jwt.verify(tokenAdmin, secretKey);
     const findAdmin = await Token.findOne({ user: decoded.user });
-    const listOfOrdersSuccess = await Order.find({ status: "สำเร็จ" });
-    const listOfOrdersWait = await Order.find({ status: "กำลังดำเนินการ" });
-    const listOfOrdersCancel = await Order.find({ status: "ปฏิเสธ" });
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth() + 1;
-    const currentYear = currentDate.getFullYear();
 
-    let totalAmountWait = 0;
-    let totalPriceWait = 0;
-    let totalAmountMontlyWait = 0;
-    let totalPriceMontlyWait = 0;
+    // ดึงข้อมูล order ที่มี status เป็น "สำเร็จ"
+    const orders = await Order.aggregate([
+      { $match: { status: "สำเร็จ" } },
+      { $unwind: "$items" }, // แยกแต่ละรายการสินค้าในคำสั่งซื้อ
+      {
+        $group: {
+          _id: {
+            day: { $dayOfMonth: "$ordertime" },
+            month: { $month: "$ordertime" },
+            year: { $year: "$ordertime" },
+            category: "$items.category", // เพิ่มการแยกตามหมวดหมู่
+          },
+          totalSales: { $sum: "$items.amount" }, // รวมจำนวนชิ้นที่ขายในแต่ละหมวดหมู่ต่อวัน
+        },
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 },
+      },
+    ]);
 
-    let totalAmountSuccess = 0;
-    let totalPriceSuccess = 0;
-    let totalAmountSuccessMontly = 0;
-    let totalPriceSuccessMontly = 0;
-
-    let totalAmountCancel = 0;
-    let totalPriceCancel = 0;
-    let totalAmountMontlyCancel = 0;
-    let totalPriceMontlyCancel = 0;
-
-    let ProductCountSuccess = 0;
-    let ProductCountCancel = 0;
-    let ProductCountWait = 0;
-
-    listOfOrdersCancel.forEach((order) => {
-      const orderDate = new Date(order.canceltime);
-      if (
-        orderDate.getMonth() + 1 === currentMonth &&
-        orderDate.getFullYear() === currentYear
-      ) {
-        const price = order.totalprice;
-        const amount = order.amount;
-        totalAmountMontlyCancel += amount;
-        totalPriceMontlyCancel += price;
-        ProductCountCancel++;
-      }
-      const price = order.totalprice;
-      const amount = order.amount;
-      totalAmountCancel += amount;
-      totalPriceCancel += price;
-    });
-
-    listOfOrdersWait.forEach((order) => {
-      console.log("🚀 ~ file: Order.js:366 ~ listOfOrdersWait.forEach ~ order:", order);
-      const orderDate = new Date(order.ordertime);
-      if (
-        orderDate.getMonth() + 1 === currentMonth &&
-        orderDate.getFullYear() === currentYear
-      ) {
-        const price = order.totalprice;
-        const amount = order.items[0].amount;
-        totalAmountMontlyWait += amount;
-        totalPriceMontlyWait += price;
-        ProductCountWait++;
-      }
-      const price = order.totalprice;
-      const amount = order.items[0].amount;
-      totalAmountWait += amount;
-      totalPriceWait += price;
-    });
-
-    listOfOrdersSuccess.forEach((order) => {
-      const orderDate = new Date(order.successtime);
-      if (
-        orderDate.getMonth() + 1 === currentMonth &&
-        orderDate.getFullYear() === currentYear
-      ) {
-        const price = order.totalprice;
-        const amount = order.items[0].amount;
-        totalAmountSuccessMontly += amount;
-        totalPriceSuccessMontly += price;
-        ProductCountSuccess++;
-      }
-      const price = order.totalprice;
-      const amount = order.amount;
-      totalAmountSuccess += amount;
-      totalPriceSuccess += price;
-    });
-
-    // all Success only
-    const totalpriceSuccess = totalPriceSuccess;
-    const totalamountSuccess = totalAmountSuccess;
-    //เดือนปัจจุบัน success only
-    const totalpriceMontlySuccess = totalPriceSuccessMontly;
-    const totalamountMontlySuccess = totalAmountSuccessMontly;
-    //all in progess
-    const totalpriceWait = totalPriceWait;
-    const totalamountWait = totalAmountWait;
-    // เดือนปัจุบัน in progess
-    const totalpriceMontlyWait = totalPriceMontlyWait;
-    const totalamountMontlyWait = totalAmountMontlyWait;
-    //all cancel
-    const totalpriceCancel = totalPriceCancel;
-    const totalamountCancel = totalAmountCancel;
-    //เดือนปัจจุบัน cancel
-    const totalpriceMontlyCancel = totalPriceMontlyCancel;
-    const totalamountMontlyCancel = totalAmountMontlyCancel;
-    const ProductCount = await Posts.countDocuments();
     const newToken = await generateNewToken(decoded.user, findAdmin);
 
-    res.json({
-      totalamountMontlyWait,
-      totalpriceMontlyWait,
-      totalamountWait,
-      totalpriceWait,
-      totalamountMontlyCancel,
-      totalpriceMontlyCancel,
-      totalamountCancel,
-      totalpriceCancel,
-      totalamountMontlySuccess,
-      totalpriceMontlySuccess,
-      totalamountSuccess,
-      totalpriceSuccess,
-      ProductCount,
-      ProductCountSuccess,
-      ProductCountCancel,
-      ProductCountWait,
-      newToken
-    });
+    // ส่งข้อมูลจำนวนยอดขายกลับไปยัง client
+    res.status(200).json({orders,newToken});
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
