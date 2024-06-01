@@ -117,9 +117,9 @@ router.put("/:id", upload.single("image"), async (req, res) => {
       updatedData.image = updatedImageData; // เพิ่มข้อมูลรูปภาพใน updatedData
     }
 
-    if (req.body.amount <= 0) {
-      req.body.amount = "สินค้าหมด";
-    }
+    // if (req.body.amount <= 0) {
+    //   req.body.amount = "สินค้าหมด";
+    // }
 
     const post = await Posts.findById(postId);
 
