@@ -24,7 +24,7 @@
     "redis": "^4.6.13",
     "shortid": "^2.2.16",
     "uuid": "^9.0.1",
-    "ws": "^8.17.0"
+    "ws": "^8.17.1"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.6",
